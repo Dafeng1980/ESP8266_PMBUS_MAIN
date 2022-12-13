@@ -1,3 +1,9 @@
+"""
+ESP8266 board to read 24C02 EEPROM via MQTT 
+
+Author Dafeng 2022
+"""
+
 import paho.mqtt.client as mqtt 
 import time
 #import datetime
