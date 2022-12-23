@@ -1,9 +1,3 @@
-"""
-ESP8266 board to read 24C02 EEPROM via MQTT 
-
-Author Dafeng 2022
-"""
-
 import paho.mqtt.client as mqtt 
 import time
 #import datetime
@@ -12,7 +6,7 @@ broker = '192.168.200.2'
 port = 1883
 username = 'dfiot'
 password = '123abc'
-Base_topic = "npicsu/"
+Base_topic = "npi/"
 pmbus_set = "pmbus/set"
 eepromaddr = 0x50
 command = "[08 {:02x} {:02x} {:02x} 10 01]" 
@@ -48,6 +42,7 @@ def strmat(msg):
 def on_message(client, userdata, msg):
 	print(strmat(str(msg.payload)))
 	file.write(strmat(str(msg.payload)) + "\n")
+	
 file = open (path_now, "a")
 client = mqtt.Client()
 client.on_connect = on_connect

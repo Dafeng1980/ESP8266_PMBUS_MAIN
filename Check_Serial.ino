@@ -170,7 +170,8 @@ void smbus_command_sent(uint8_t com){
             uint8_t datablock[256];
             uint16_t blocksize;
             uint8_t datablock_b[256];
-            uint16_t blocksize_b;              
+            uint16_t blocksize_b;
+            char msg[32];              
         }sm;
         smbuscomun = true;
   switch (com)
@@ -180,26 +181,28 @@ void smbus_command_sent(uint8_t com){
         ps_i2c_address_ = smbus_data[1];
         sm.commands = smbus_data[2];
         sm.databyte = smbus_readByte(ps_i2c_address_, sm.commands);    
-        if(smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X]", sm.commands, sm.databyte);
-       else  snprintf (msg, MSG_BUFFER_SIZE, "Read Byte Fail.");
-//       if(mqttflag) f("rrh/pmbus/info/read", msg);
-        pub("pmbus/info/read", msg);
+        if(smbuscomun) {
+          snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X]", sm.commands, sm.databyte);
+          pub("pmbus/info/read", msg);
+        }
+       else  pub("pmbus/info/write", "Read Word Fail.");
+//       if(mqttflag) f("rrh/pmbus/info/read", msg);       
         Log.noticeln("%s", msg);               
         delay(10);       
       break;
-      
+           
       case 1:
         Log.noticeln(F("Smbus Read Word:"));
         ps_i2c_address_ = smbus_data[1];
         sm.commands = smbus_data[2];
         sm.dataword = smbus_readWord(ps_i2c_address_, sm.commands);
         if (smbus_data[3] == 0 && smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X %02X]", sm.commands, sm.dataword >> 8, (uint8_t)sm.dataword);
-        else if(smbus_data[3] == 1 && smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%2.1f]", sm.commands, L11_to_float(sm.dataword));
+        else if(smbus_data[3] == 1 && smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%4.3f]", sm.commands, L11_to_float(sm.dataword));
         else if(smbus_data[3] == 2 && smbuscomun) {
             sm.vmode = smbus_readByte(ps_i2c_address_, 0x20) & 0x1F;
-            snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%4.3f]", sm.commands, L16_to_float_mode(sm.vmode, sm.dataword));
+            snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%5.4f]", sm.commands, L16_to_float_mode(sm.vmode, sm.dataword));            
         }
-        else  snprintf (msg, MSG_BUFFER_SIZE, "Read Word Fail.");
+        else pub("pmbus/info/write", "Read Word Fail.");         
         pub("pmbus/info/read", msg);
         Log.noticeln("%s", msg);     
         delay(10);
@@ -227,9 +230,12 @@ void smbus_command_sent(uint8_t com){
           d[3*n + 2] = hex_table[sm.datablock[n] & 0x0f];
         }
         d[3*actual_size] = '\0';
-        if(smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "%02X:[%02X%s]", sm.commands, actual_size, d);
-        else snprintf (msg, MSG_BUFFER_SIZE, "Read Block Fail.");
-        pub("pmbus/info/read", msg);
+        if(smbuscomun) {
+          snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X%s]", sm.commands, actual_size, d);
+          pub("pmbus/info/read", msg);
+        }
+        else pub("pmbus/info/write", "Read Blocks Fail.");
+              
         if(serialflag) {
                 Log.errorln(F("Read Blocks Size:%x"), actual_size);
                 printFru(0, actual_size-1, sm.datablock);
@@ -268,8 +274,8 @@ void smbus_command_sent(uint8_t com){
         Log.noticeln(F("Smbus Write Block:"));
         ps_i2c_address_ = smbus_data[1];
         sm.commands = smbus_data[2];
-        sm.blocksize = smbus_data[3];   // size Max 256
-        if(sm.blocksize > 128) {
+        sm.blocksize = smbus_data[3];   // 
+        if(sm.blocksize > 127) {
           Log.errorln(F("Write Blocks: Fail size too big."));
           pub("pmbus/info/write", "Write Blocks: Fail size too big.");
           break;
@@ -279,7 +285,7 @@ void smbus_command_sent(uint8_t com){
           }
           smbus_writeBlock(ps_i2c_address_, sm.commands, sm.datablock, sm.blocksize);
           if(smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "WB Done.");
-          else snprintf (msg, MSG_BUFFER_SIZE, "Write Block Fail.");
+          else snprintf (msg, MSG_BUFFER_SIZE, "Write Blocks Fail.");
           pub("pmbus/info/write", msg);
           Log.noticeln("%s", msg);      
           delay(10);     
@@ -292,7 +298,7 @@ void smbus_command_sent(uint8_t com){
         sm.blocksize = smbus_data[3];
         if(sm.blocksize > 64) {
          Log.errorln(F("Write Blocks: Fail size too big."));
-         pub("pmbus/info/write/read", "Write Blocks: Fail size too big.");
+         pub("pmbus/info/write", "Write Blocks: Fail size too big.");
          break;
         }
         for(int i = 0; i < sm.blocksize; i++) {
@@ -300,16 +306,16 @@ void smbus_command_sent(uint8_t com){
 //          Serial.printf("Block n=%02X Data:%02X\n", i, sm.datablock[i]);    
         }
         sm.blocksize_b = smbus_data[sm.blocksize+4];
-        if(sm.blocksize_b > 128) {
+        if(sm.blocksize_b > 127) {
              Log.errorln(F("Read Blocks: Fail size too big."));
-             pub("pmbus/info/read", "Read Blocks: Fail size too big.");
+             pub("pmbus/info/write", "Read Blocks: Fail size too big.");
              break; 
         }
         actual_size = smbus_writeReadBlock (ps_i2c_address_, sm.commands, sm.datablock, sm.blocksize, sm.datablock_b, sm.blocksize_b);      
 //        Serial.printf("%02X:", sm.blocksize_b);
-        if(actual_size > 128) {
+        if(actual_size > 127) {
              Log.errorln(F("Read Blocks: Fail Actual size too big."));
-             pub("pmbus/info/read", "Read Blocks: Fail Actual size too big.");
+             pub("pmbus/info/write", "Read Blocks: Fail Actual size too big.");
              break; 
         }              
         for (int n = 0; n < actual_size; n++){
@@ -318,9 +324,12 @@ void smbus_command_sent(uint8_t com){
           d[3*n + 2] = hex_table[sm.datablock_b[n] & 0x0f];
         }
         d[3*actual_size] = '\0';
-        if(smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "[%02X%s]",actual_size, d);
-        else snprintf (msg, MSG_BUFFER_SIZE, "Write Read Blocks Fail.");
-        pub("pmbus/info/read", msg);
+        if(smbuscomun) {
+          snprintf (msg, MSG_BUFFER_SIZE, "[%02X%s]",actual_size, d);
+          pub("pmbus/info/read", msg);
+        }
+        else pub("pmbus/info/write", "Write Read Blocks Fail.");
+        
         if(actual_size >16) {
                 Log.errorln(F("Read Blocks Size:%x"), actual_size);
                 printFru(0, actual_size-1, sm.datablock_b);
@@ -356,11 +365,12 @@ void smbus_command_sent(uint8_t com){
               break;
             }
         for (int n = 0; n < count; n++){
-          d[3*n] = ' ';
-          d[3*n + 1] = hex_table[eepbuffer[n] >> 4];
-          d[3*n + 2] = hex_table[eepbuffer[n] & 0x0f];
+          
+          d[3*n] = hex_table[eepbuffer[n] >> 4];
+          d[3*n + 1] = hex_table[eepbuffer[n] & 0x0f];
+          d[3*n + 2] = ' ';
         }
-        d[3*count] = '\0';      
+        d[3*count - 1] = '\0';      
         snprintf (msg, MSG_BUFFER_SIZE, "offset0x%04X:[%s]",offset, d);
         pub("pmbus/info/eread", msg);
         if(serialflag) {
@@ -375,47 +385,45 @@ void smbus_command_sent(uint8_t com){
         Log.noticeln(F("Generic I2C W/R Bytes"));
         ps_i2c_address_ = smbus_data[1];
         sm.writebytes = smbus_data[2];
-        if(sm.writebytes > 64) {
+        if(sm.writebytes > 127) {
          Log.errorln(F("Write Blocks: Fail size too big."));
          pub("pmbus/info/write", "Write Blocks: Fail size too big.");
          break;
         }
         for(int i = 0; i < sm.writebytes; i++) {
-          sm.datablock[i] = smbus_data[i+3];
-          d[3*i] = ' ';
-          d[3*i + 1] = hex_table[sm.datablock[i] >> 4];
-          d[3*i + 2] = hex_table[sm.datablock[i] & 0x0f];     
+          sm.datablock[i] = smbus_data[i+3];         
+          d[3*i] = hex_table[sm.datablock[i] >> 4];
+          d[3*i + 1] = hex_table[sm.datablock[i] & 0x0f];
+          d[3*i + 2] = ' ';     
         }
-        d[3*sm.writebytes] = '\0'; 
+        d[3*sm.writebytes - 1] = '\0'; 
         sm.readbytes = smbus_data[sm.writebytes+3];
-        snprintf (msg, MSG_BUFFER_SIZE, "A%02x Q%02x:[%s R:%02x]", ps_i2c_address_, sm.writebytes, d, sm.readbytes);
+        if(sm.readbytes == 0)
+          snprintf (msg, MSG_BUFFER_SIZE, "Addr:0x%02x WriteQut:0x%02X [%s No Readback]", ps_i2c_address_, sm.writebytes, d, sm.readbytes);
+        else snprintf (msg, MSG_BUFFER_SIZE, "Addr:0x%02x WriteQut:0x%02X [%s Read:0x%02X]", ps_i2c_address_, sm.writebytes, d, sm.readbytes);
         pub("pmbus/info/write", msg);
         Log.noticeln("%s", msg);
-        if(sm.readbytes > 128) {
+        if(sm.readbytes > 255) {
         Log.errorln(F("Read Blocks: Fail size too big."));
         pub("pmbus/info/read", "Read Blocks: Fail size too big.");
         break;
         }
-        if(i2c_blockWriteReadBlock(ps_i2c_address_, sm.writebytes, sm.datablock, sm.readbytes, eepbuffer)){
+        if(i2c_blockWriteReadBlock(ps_i2c_address_, sm.writebytes, sm.datablock, sm.readbytes, sm.datablock_b)){
         Log.errorln(F("I2C Write/Read Block Fail."));
-        pub("pmbus/info/read", "Write/Read Block Fail.");
+        pub("pmbus/info/write", "Write/Read Block Fail.");
         break;
         }
         if(sm.readbytes != 0)
         {
-          for (int n = 0; n < sm.readbytes; n++){
-            d[3*n] = ' ';
-            d[3*n + 1] = hex_table[eepbuffer[n] >> 4];
-            d[3*n + 2] = hex_table[eepbuffer[n] & 0x0f];
+          for (int n = 0; n < sm.readbytes; n++){           
+            d[3*n] = hex_table[sm.datablock_b[n] >> 4];
+            d[3*n + 1] = hex_table[sm.datablock_b[n] & 0x0f];
+            d[3*n + 2] = ' ';
           }
-          d[3*sm.readbytes] = '\0';       
-          snprintf (msg, MSG_BUFFER_SIZE, "RQ%02x:[%s]", sm.readbytes, d);
+          d[3*sm.readbytes - 1] = '\0';       
+          snprintf (msg, MSG_BUFFER_SIZE, "ReadQut:0x%02X [%s]", sm.readbytes, d);
           pub("pmbus/info/read", msg);
           Log.noticeln("%s", msg);
-        }
-        else {
-          Log.noticeln("No Readback");
-          pub("pmbus/info/read", "No Readback");
         }
         delay(5);
         break;

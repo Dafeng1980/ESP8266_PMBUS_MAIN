@@ -1,11 +1,15 @@
+"""
+Created on 2022
+
+@author: Dafeng
+"""
 import time
 import paho.mqtt.client as mqtt
 import xlwings as xw
 import sys
 
 client = mqtt.Client()
-class MQTTtoExcel:
-     
+class MQTTtoExcel:    
     def __init__(self, mqtt_server):
         self.filepath = r'D:\My Documents\pmbus\pmbus_excel.xlsx'
         self.app=xw.App(visible=True,add_book=False)
@@ -14,7 +18,7 @@ class MQTTtoExcel:
         self.wb = self.app.books.open(self.filepath)
         self.mqtt_server = mqtt_server
         #self.filename = " "
-        self.records = 3 
+        self.records = 600 
         self.Base_topic = "npicsu/"
         self.username = 'dfiot'
         self.password = '123abc'
@@ -42,6 +46,11 @@ class MQTTtoExcel:
             self.pub("pmbus/set", "[AA 01 {:02x} {:02x}]".format(high, low))
             time.sleep(0.1)
             #print("pmbus/set", "[AA 01 {:02x} {:02x}]".format(high, low))
+    def set_addr(self, addr):
+        addr = int(addr, 16)
+        if(addr >= 0x03 and addr <= 0x7F):
+            self.pub("pmbus/set", "[AA 00 {:02x}]".format(addr))
+            time.sleep(0.1)
 
     def pub(self, topic, msg):
         client.publish(self.Base_topic + topic, msg, qos=0, retain=False)
@@ -113,15 +122,15 @@ class MQTTtoExcel:
             self.ws.range('B11').value=float(msg.payload)
     
     def topic_info_callback(self, lient, userdata, msg):
-        if(msg.topic.find('read') > 0):
-            print(msg.payload.decode())
-            self.ws.range('A13').value= msg.payload.decode()
         if(msg.topic.find('eread') > 0):
             print(msg.payload.decode())
             self.ws.range('A'+ "{:d}".format(self.eep_c)).value= msg.payload.decode()
             self.eep_c = self.eep_c +1
             if(self.eep_c > 29):
                 self.eep_c = 14
+        elif(msg.topic.find('read') > 0):
+            print(msg.payload.decode())
+            self.ws.range('A13').value= msg.payload.decode()
         elif(msg.topic.find('write') > 0):
             #print(msg.payload.decode())
             self.ws.range('E11').value= msg.payload.decode()
@@ -152,24 +161,39 @@ class MQTTtoExcel:
 
 def main():
     ptoe = MQTTtoExcel("192.168.200.2")
-    ptoe.set_records(6)
+    # ptoe.set_records(16)
     ptoe.start()
     ptoe.set_polltime(1000)
     ptoe.pub("pmbus/set", "[AA 04]") #Enable sensor read&pub
     time.sleep(0.1)
     while True:
         if(ptoe.ws.range('F10').value == "Enable"):
-            if(ptoe.ws.range('G10').value == "eeprom"):
+            if(ptoe.ws.range('G10').value == "Send_Comm_"):
+                ptoe.pub("pmbus/set", ptoe.ws.range('H11').value)
+                time.sleep(0.1)
+            elif(ptoe.ws.range('G10').value == "EEprom_"):
                 ptoe.pub("pmbus/set", '[AA 02 00]')
                 for i in range(16):
                     ptoe.eeprom_com(i*16)
                     time.sleep(0.05)
                 ptoe.pub("pmbus/set", '[AA 02 01]')
-            #print("F10 %s" % ptoe.ws.range('F10').value)    
+                time.sleep(0.1) 
+            elif(ptoe.ws.range('G10').value == "Set_Poll_"):
+                ptoe.set_polltime(ptoe.ws.range('H10').value)
+                #ptoe.pub("pmbus/set", '[AA 02 00]')                                    
+            elif(ptoe.ws.range('G10').value == "I2c_Scan_"):
+                ptoe.pub("pmbus/set", '[AA 05]')
+                time.sleep(0.1)
+            elif(ptoe.ws.range('G10').value == "Set_Addr_"):
+                ptoe.set_addr(ptoe.ws.range('H10').value)
+            elif(ptoe.ws.range('G10').value == "Shut_Down_"):
+                time.sleep(0.2)
+                ptoe.ws.range('F10').value = "Disable"
+                ptoe.wb.save()
+                ptoe.wb.close()
+                ptoe.app.quit()
+                sys.exit("Complete ")
             ptoe.ws.range('F10').value = "Disable"
-            #time.sleep(0.1)
-        #B16 = ptoe.ws.range('B2').value
-        #ptoe.ws.range('B16').value = B16
         ptoe.mqttloop()
 
 if __name__ == '__main__':
