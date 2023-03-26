@@ -275,7 +275,7 @@ void pmbusStatus(){
     
     if(lsb & 0x02){
       cm = pmbus_readStatusCml(ps_i2c_address);
-      Log.noticeln(F("STATUS_TEMPERATURE: %B,  0x%x"), cm, cm);
+      Log.noticeln(F("STATUS_CML: %B,  0x%x"), cm, cm);
 //      Serial.print(F("STATUS_CML 0B "));
 //      printBits(cm);
 //      Serial.print(F("    : 0x"));

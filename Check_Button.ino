@@ -11,8 +11,8 @@ void checkButton() {
         holdEventPast = false;
         longHoldEventPast = false;
     if ((millis() - upTime) < DCgap && DConUp == false && DCwaiting == true) DConUp = true;
-    else DConUp = false;
-    DCwaiting = false;
+      else DConUp = false;
+      DCwaiting = false;
   }
   // Button released
   else if (buttonVal == HIGH && buttonLast == LOW && (millis() - downTime) > debounce) {
@@ -216,22 +216,29 @@ void callback(char* topic, byte* payload, unsigned int length) {
       inPayload = "";
    }
   else if ((char)payload[0] == '[') {
-      for(int i = 0; i < length; i++){   
-          smbus_data[i] = tohex(payload[3*i+1])*16 + tohex(payload[3*i+2]); 
-          if (payload[3*i+3] == ']'){
-              subsmbusflag = true;
-              buttonflag = false;
-              break;
-            }
-          if (i >= 36) {
+      for(int i = 1; i < length; i++){   
+          smbus_data[i-1] = tohex(payload[3*i-2])*16 + tohex(payload[3*i-1]);
+          if (i >= 127) {
               Log.noticeln(F("Smbus Invalid format"));
               pub("pmbus/info", "Smbus Invalid format");
               subsmbusflag = false;
               delay(100);
               break; 
-            }      
-        }
-  }
+            }
+          if (payload[3*i] == ']'){
+              subsmbusflag = true;
+              buttonflag = false;
+              break;
+          }                       
+          if(payload[3*i] != ' ' && 3*i >= (length-1)) {
+             Log.noticeln(F("Space Fail, or No ] Fuffix, Smbus Invalid Format"));
+              pub("pmbus/info", "Space Fail, or No ] Suffix, Smbus Invalid Format");
+              subsmbusflag = false;
+              delay(100);
+              break;
+          }
+      }        
+    }
   else if ((char)payload[0] == '%') {              
       for (int i = 0; i < length; i++) {
           scpicmd[i] = payload[i + 1];
@@ -249,11 +256,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
           }
        }
    }
-  else if ((char)payload[0] == '0') key = 0;
-  
+  // else if ((char)payload[0] == '0') key = 0;   
   for (int i = 0; i < length; i++) {
-    Log.notice("%c", (char)payload[i]);
-  }
+        Log.notice("%c", (char)payload[i]);
+    }
   Log.noticeln("");
 }
 

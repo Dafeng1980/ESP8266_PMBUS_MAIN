@@ -1,7 +1,30 @@
-/*   ESP8266 model: ESP-01S Board SDA = 0; SCL = 2; ESP-12F Board SDA = 4; SCl = 5;
- *               HEKR 1.1 Board  SDA = 0; SCL = 13; LED = 4 Button = 14;
+/*   ESP8266 model: ESP-01S Board SDA = 2; SCL = 0; ESP-12F Board SDA = 4; SCl = 0;
+ *               HEKR 1.1 Board  SDA = 14; SCL = 0; LED = 4 Button = 13;
  *               Using the ESP8266 HEKR 1.1 Board (Purple);               
  *   https://play.google.com/store/apps/details?id=com.app.vetru.mqttdashboard  Mqtt Dashboard For  Android Iot APP
+ *
+ * Publish the topic "npi/pmbus/set" using the MQTT protocol with the message content "[-- XX XX XX XX]".
+ *  The square brackets "[]" indicate the beginning and end of the HEX data string in the message. (There is a space " " between each data)
+ *  The byte "--" in the beginning represents the type of command instruction being sent. 
+ *  The value of "--" from 0x00 to 0x09 indicates the communication instructions of I2C/Smbus format and the I2C_EEPROM reading instructions. 
+ *  The value of "--" as 0xAA represents the custom function.
+ *  "XX" refers to the byte content of the command being sent.
+ *
+ *  For example, when publishing the topic "rrh/pmbus/set":
+ *      1) The message content is "[03 58 00 01]" (Can be used to set the PAGA value in Pmbus to 0x01.)
+ *              0x03 represents calling the smbus write byte format.
+ *              0x58 represents the I2C address for smbus communication.
+ *              0x00 represents the command of write byte.
+ *              0x01 represents the parameter of the command.
+ *
+ *    2) The message content is "[AA 00 59]"
+ *              0xAA represents calling the custom instruction.
+ *              0x00 indicates resetting the address of Pmbus.
+ *              0x59 represents the value of the address.
+ *  
+ * Publish the topic "npi/scpi/set" using the MQTT protocol with the message content "%*IDN?%".
+ *  "%" , "%" are the starting and ending marks for sending SCPI string format messages. Used for communication with SCPI serial measuring instruments.
+ *
  *   Author Dafeng 2022
 */
 
@@ -86,14 +109,14 @@ const uint16_t mqtt_port =  1883;
 //const char *mqtt_server = "broker.emqx.io";  // Free Public MQTT broker 
 //const int mqtt_port = 1883;  //There is no privacy protection for public access broker.
 //                              //Any device can publish and subscribe to topics on it.
-const char* clientID = "zhsnpi1fdevices";
+const char* clientID = "zhsnpi1fdevices001";
 
-const int SDA_PIN = 14;         //ESP-01S Board SDA = 0; SCL = 2;   ESP8266 HEKR 1.1 Board  SDA = 0; SCL = 13
+const int SDA_PIN = 14;         //ESP-01S Board SDA = 2; SCL = 0;   ESP8266 HEKR 1.1 Board  SDA = 14; SCL = 0
 const int SCL_PIN = 0;
 const uint8_t kLedPin = 4;
 const uint8_t kButtonPin = 13;       
 //const int SDA_PIN = 4;         
-//const int SCL_PIN = 5;       // ESP-12F Board SDA = 4; SCl = 5;
+//const int SCL_PIN = 0;       // ESP-12F Board SDA = 4; SCl = 0;
 //const uint8_t kLedPin = 12;
 const char hex_table[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 

@@ -237,10 +237,10 @@ void smbus_command_sent(uint8_t com){
         else pub("pmbus/info/write", "Read Blocks Fail.");
               
         if(serialflag) {
-                Log.errorln(F("Read Blocks Size:%x"), actual_size);
-                printFru(0, actual_size-1, sm.datablock);
-        }
-//        Log.noticeln("%s", msg);                     
+                Log.noticeln("%s", msg); 
+                // Log.errorln(F("Read Blocks Size:%x"), actual_size);
+                // printFru(0, actual_size-1, sm.datablock);
+        }                   
         delay(10);
       break;
             
