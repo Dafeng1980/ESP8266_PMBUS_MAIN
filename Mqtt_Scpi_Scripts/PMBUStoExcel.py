@@ -7,7 +7,7 @@ import time
 import paho.mqtt.client as mqtt
 import xlwings as xw
 import sys
-
+import json
 client = mqtt.Client()
 class MQTTtoExcel:    
     def __init__(self, mqtt_server):
@@ -59,19 +59,8 @@ class MQTTtoExcel:
         client.subscribe(self.Base_topic + topic, qos=0)
 
     def on_message(self, client, userdata, msg):
-        if(msg.topic.find('word') > 0):
-            print("Status Word(0x79): 0x%04x" % int(msg.payload[2:6], 16))
-            self.ws.range('H2').value = ("%02x" % int(msg.payload[2:4], 16))
-            self.ws.range('I2').value = ("%02x" % int(msg.payload[4:6], 16))
-
-        if(msg.topic.find('all') > 0):
-           print(msg.payload.decode())
-           self.ws.range('I8').value = ("%02x" % int(msg.payload[6:8], 16))   # CML
-           self.ws.range('I6').value = ("%02x" % int(msg.payload[16:18], 16))  #temperature
-           self.ws.range('I7').value = ("%02x" % int(msg.payload[25:27], 16))  # Fan
-           self.ws.range('I3').value = ("%02x" % int(msg.payload[35:37], 16))  # Vout
-           self.ws.range('I4').value = ("%02x" % int(msg.payload[45:47], 16))  # Iout
-           self.ws.range('I5').value = ("%02x" % int(msg.payload[56:58], 16))  #input
+        # if(msg.topic.find('word') > 0):
+        #     print("Status Word(0x79): 0x%04x" % int(msg.payload[2:6], 16))
 
         if(str(msg.payload).find('PMBUS') > 0):
             print(time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()))
@@ -85,42 +74,48 @@ class MQTTtoExcel:
                 self.app.quit()
                 sys.exit("Complete ")
 
-    def topic_output_callback(self,lient, userdata, msg):
-        if(msg.topic.find('curr') > 0):
-            print("Onput Current: %.3fA" % float(msg.payload))
-            self.ws.range('B3').value=float(msg.payload)
-        if(msg.topic.find('volt') > 0):
-            print("Onput Voltage: %.4fV" % float(msg.payload))
-            self.ws.range('B2').value=float(msg.payload)
-        if(msg.topic.find('power') > 0):
-            print("Onput Power: %.2fW" % float(msg.payload))
-            self.ws.range('B7').value=float(msg.payload)
-    
-    def topic_input_callback(self, lient, userdata, msg):
-        if(msg.topic.find('curr') > 0):
-            print("Input Current: %.3fA" % float(msg.payload))
-            self.ws.range('B5').value=float(msg.payload)
-        if(msg.topic.find('volt') > 0):
-            print("Input Voltage: %.2fV" % float(msg.payload))
-            self.ws.range('B4').value=float(msg.payload)
-        if(msg.topic.find('power') > 0):
-            print("Input Power: %.2fW" % float(msg.payload))
-            self.ws.range('B6').value=float(msg.payload)    
-    
-    def topic_sensor_callback(self, lient, userdata, msg):
-        if(msg.topic.find('temp1') > 0):
-            print("Inlet Temp(0x8D): %.1fC" % float(msg.payload))
-            self.ws.range('B8').value=float(msg.payload)
-        if(msg.topic.find('temp2') > 0):
-            print("Pri Temp(0x8E): %.1fC" % float(msg.payload))
-            self.ws.range('B9').value=float(msg.payload)
-        if(msg.topic.find('temp3') > 0):
-            print("Sec Temp(0x8F): %.1fC" % float(msg.payload))
-            self.ws.range('B10').value=float(msg.payload)
-        if(msg.topic.find('fan') > 0):
-            print("Fan Speed: %.1fRPM" % float(msg.payload))
-            self.ws.range('B11').value=float(msg.payload)
-    
+    def topic_json_callback(self, lient, userdata, msg):
+        data = json.loads(msg.payload)
+        print("outVolt: %.4fV" % data["outputVolt"])
+        self.ws.range('B2').value=data["outputVolt"]
+        print("outCurr: %.3fA" % data["outputCurr"])
+        self.ws.range('B3').value=data["outputCurr"]
+        print("outPower: %.2fW" % data["outputPower"])
+        self.ws.range('B7').value=data["outputPower"]
+        print("inVolt: %.2fV" % data["inputVolt"])
+        self.ws.range('B4').value=data["inputVolt"]
+        print("inCurr: %.3fA" % data["inputCurr"])
+        self.ws.range('B5').value=data["inputCurr"]
+        print("inPower: %.3fW" % data["inputPower"])
+        self.ws.range('B6').value=data["inputPower"]
+        print("Inlet Temp(0x8D): %.1fC" % data["sensorTemp1"])
+        self.ws.range('B8').value=data["sensorTemp1"]
+        print("Pri Temp(0x8E): %.1fC" % data["sensorTemp2"])
+        self.ws.range('B9').value=data["sensorTemp2"]
+        print("Sec Temp(0x8F): %.1fC" % data["sensorTemp3"])
+        self.ws.range('B10').value=data["sensorTemp3"]
+        print("Fan Speed: %.1fRPM" % data["sensorFan"])
+        self.ws.range('B11').value=data["sensorFan"]
+
+        print("statusWord: 0x%04x" % data["statusWord"])
+        self.ws.range('H2').value = ("%02x" % int(data["statusWord"] >> 8) )
+        self.ws.range('I2').value = ("%02x" % int(data["statusWord"] & 0xff))
+        print("statusCml: 0x%02x" % data["statusCm"])
+        self.ws.range('I8').value = ("%02x" % int(data["statusCm"]))
+        print("statusTemp: 0x%02x" % data["statusTm"])
+        self.ws.range('I6').value = ("%02x" % int(data["statusTm"]))
+        print("statusFan: 0x%02x" % data["statusFa"])
+        self.ws.range('I7').value = ("%02x" % int(data["statusFa"]))
+        print("statusVout: 0x%02x" % data["statusVo"])
+        self.ws.range('I3').value = ("%02x" % int(data["statusVo"]))
+        print("statusIout: 0x%02x" % data["statusIo"])
+        self.ws.range('I4').value = ("%02x" % int(data["statusIo"]))
+        print("statusInput: 0x%02x" % data["statusIn"])
+        self.ws.range('I5').value = ("%02x" % int(data["statusIn"]))
+    # def topic_output_callback(self,lient, userdata, msg):
+    #     if(msg.topic.find('curr') > 0):
+    #         print("Onput Current: %.3fA" % float(msg.payload))
+    #         self.ws.range('B3').value=float(msg.payload)
     def topic_info_callback(self, lient, userdata, msg):
         if(msg.topic.find('eread') > 0):
             print(msg.payload.decode())
@@ -137,6 +132,8 @@ class MQTTtoExcel:
         else:
             self.ws.range('G11').value= msg.payload.decode()
 
+    
+
     def eeprom_com(self, offset, addr = 0x50):
         self.pub("pmbus/set", "[08 {:02x} {:02x} {:02x} 10 01]".format(addr, (offset >> 8) & 0xFF, (offset & 0xff)))
 
@@ -145,10 +142,9 @@ class MQTTtoExcel:
         client.on_connect = self.on_connect
         client.on_message = self.on_message
         client.username_pw_set(self.username, self.password)
-        client.message_callback_add(self.Base_topic + "pmbus/output/#", self.topic_output_callback)
-        client.message_callback_add(self.Base_topic + "pmbus/input/#", self.topic_input_callback)
-        client.message_callback_add(self.Base_topic + "pmbus/sensor/#", self.topic_sensor_callback)
+        # client.message_callback_add(self.Base_topic + "pmbus/output/#", self.topic_output_callback)
         client.message_callback_add(self.Base_topic + "pmbus/info/#", self.topic_info_callback)
+        client.message_callback_add(self.Base_topic + "pmbus/jsoninfo", self.topic_json_callback)
         #client.username_pw_set('dfiot', '123abc')
         #client.connect("192.168.200.2", 1883, 60)
         client.connect(self.mqtt_server, 1883, 60)

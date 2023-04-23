@@ -33,6 +33,7 @@
 #include <ESP8266WiFi.h>
 #include <ArduinoLog.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 #define Base_Topic "npi/"
 #define TWI_BUFFER_SIZE 256
@@ -63,6 +64,12 @@ static struct PowerPmbus
   float temp2;
   float temp3;
   uint16_t statusWord;
+  uint8_t s_tm;
+  uint8_t s_fa;
+  uint8_t s_cm;
+  uint8_t s_vo;
+  uint8_t s_io;
+  uint8_t s_in;
   uint8_t i2cAddr;  
 }pd;
 
@@ -148,6 +155,8 @@ boolean longHoldEventPast = false;// whether or not the long hold event happened
 
 WiFiClient eClient;
 PubSubClient client(mqtt_server, mqtt_port, eClient);
+DynamicJsonDocument doc(1024);
+JsonObject pmbus = doc.createNestedObject("pmbus");
 
 void setup() { 
     pinMode(kButtonPin, INPUT_PULLUP);

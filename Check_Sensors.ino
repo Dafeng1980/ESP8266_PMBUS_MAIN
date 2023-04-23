@@ -6,7 +6,6 @@ void checkSensors(){
         if(readpmbusdata()){
             if(0 != pd.statusWord && statusflag && serialflag) pmbusStatus();                 
             if(wifistatus && mqttflag) publishPmbusData(pd);
-            if(wifistatus && mqttflag && statusflag) pubPmbusStatus(); 
             if(0 == count%3 && serialflag) printpmbusData(pd);        
           }
           count++;
@@ -25,7 +24,7 @@ bool readpmbusdata(){
               pub("pmbus/status", msg);
             }
          }
-          if(serialflag)Log.noticeln(F("PMBUS Polling Fail loop: %l, Type 'h' To Help"), count);
+          if(serialflag) Log.noticeln(F("PMBUS Polling Fail loop: %l, Type 'h' To Help"), count);
 //          else          Log.noticeln(F("PMBUS Polling Fail loop: %l,"), count);
           delay(10);      
           return ret = false;
@@ -39,7 +38,14 @@ bool readpmbusdata(){
      pd.outputP = pmbus_readPout(ps_i2c_address);
      pd.temp1 = pmbus_readOtemp(ps_i2c_address);        //temp sensor 0x8D                
      pd.statusWord = pmbus_readStatusWord(ps_i2c_address);
-     
+     if(statusflag) {
+       pd.s_tm = pmbus_readStatusTemp(ps_i2c_address);    //0x7D
+       pd.s_fa = pmbus_readStatusFan(ps_i2c_address);     //0x81
+       pd.s_cm = pmbus_readStatusCml(ps_i2c_address);     //0x7E
+       pd.s_vo = pmbus_readStatusVout(ps_i2c_address);    //0x7A Status_Vout
+       pd.s_io = pmbus_readStatusIout(ps_i2c_address);    //0x7B 
+       pd.s_in = pmbus_readStatusInput(ps_i2c_address);   //0x7C
+     }
      if(expandengery){
      pd.inputE = pmbus_readEin(ps_i2c_address);            //Ein 0x86
      pd.outputE = pmbus_readEout(ps_i2c_address);         //Eout 0x87
@@ -55,7 +61,7 @@ bool readpmbusdata(){
      pd.outputAsb = pmbus_readIout(ps_i2c_address);
      pmbus_setPage(ps_i2c_address,0);
      }     
-     delay(10);
+    //  delay(10);
      return ret;     
 }
 
@@ -67,26 +73,39 @@ void publishPmbusData(struct PowerPmbus busData){
       pub("pmbus/status", msg);
       Log.noticeln("PMBUS_PUBLISH_REFRESH:%d", value);
     }
+  pmbus["inputVolt"] = busData.inputV;
   snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputV);
 //  client.publish("rrh/pmbus/input/volt", msg);
   pub("pmbus/input/volt", msg);
+  pmbus["inputCurr"] =  busData.inputA;
   snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.inputA);
   pub("pmbus/input/curr", msg);
+  pmbus["inputPower"] =  busData.inputP;
   snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputP);
   pub("pmbus/input/power", msg);
-  
+  pmbus["outputVolt"] =  busData.outputV;
   snprintf (msg, MSG_BUFFER_SIZE, "%5.4f", busData.outputV);
   pub("pmbus/output/volt", msg);
+  pmbus["outputCurr"] =  busData.outputA;
   snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.outputA);
   pub("pmbus/output/curr", msg);
+  pmbus["outputPower"] =  busData.outputP;
   snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.outputP);
   pub("pmbus/output/power", msg);
-  
+  pmbus["sensorTemp1"] =  busData.temp1;
   snprintf (msg, MSG_BUFFER_SIZE, "%2.1f", busData.temp1);
   pub("pmbus/sensor/temp1", msg);
+  pmbus["statusWord"] =  busData.statusWord;
   snprintf (msg, MSG_BUFFER_SIZE, "0x%02x%02x", busData.statusWord >> 8, busData.statusWord & 0xFF);
   pub("pmbus/status/word", msg);
-  
+  if(statusflag) {
+    pmbus["statusCm"] =  busData.s_cm; pmbus["statusTm"] =  busData.s_tm; 
+    pmbus["statusFa"] =  busData.s_fa; pmbus["statusVo"] =  busData.s_vo;
+    pmbus["statusIo"] =  busData.s_io; pmbus["statusIn"] =  busData.s_in;
+    snprintf (msg, MSG_BUFFER_SIZE, "Cml:0x%02x Temp:0x%02x Fan:0x%02x Vout:0x%02x Iout:0x%02x Input:0x%02x", busData.s_cm, busData.s_tm, 
+    busData.s_fa, busData.s_vo, busData.s_io, busData.s_in);
+    pub("pmbus/status/all", msg);
+  }
   if(expandengery){
     snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputE);
     pub("pmbus/input/energy", msg);
@@ -95,10 +114,13 @@ void publishPmbusData(struct PowerPmbus busData){
   }
 
   if(expandsensor){
+    pmbus["sensorTemp2"] =  busData.temp2;
     snprintf (msg, MSG_BUFFER_SIZE, "%2.1f", busData.temp2);
     pub("pmbus/sensor/temp2", msg);
+    pmbus["sensorTemp3"] =  busData.temp3;
     snprintf (msg, MSG_BUFFER_SIZE, "%2.1f", busData.temp3);
     pub("pmbus/sensor/temp3", msg);
+    pmbus["sensorFan"] =  busData.fanSpeed;
     snprintf (msg, MSG_BUFFER_SIZE, "%2.1f", busData.fanSpeed);
     pub("pmbus/sensor/fan", msg);
   }
@@ -108,19 +130,10 @@ void publishPmbusData(struct PowerPmbus busData){
     pub("pmbus/output/vsb", msg);
     snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.outputAsb);
     pub("pmbus/output/csb", msg);
-  } 
-}
-
-void pubPmbusStatus() {
-       uint8_t io,in,tm,fa,vo,cm;
-       tm = pmbus_readStatusTemp(ps_i2c_address);    //0x7D
-       fa = pmbus_readStatusFan(ps_i2c_address);     //0x81
-       cm = pmbus_readStatusCml(ps_i2c_address);     //0x7E
-       vo = pmbus_readStatusVout(ps_i2c_address);    //0x7A Status_Vout
-       io = pmbus_readStatusIout(ps_i2c_address);    //0x7B 
-       in = pmbus_readStatusInput(ps_i2c_address);   //0x7C
-       snprintf (msg, MSG_BUFFER_SIZE, "Cml:0x%02x Temp:0x%02x Fan:0x%02x Vout:0x%02x Iout:0x%02x Input:0x%02x", cm, tm, fa, vo, io, in);
-       pub("pmbus/status/all", msg);
+  }
+  // String jsonString;
+  // serializeJson(doc, jsonString);
+  pub("pmbus/jsoninfo", pmbus); 
 }
 
 void printpmbusData(struct PowerPmbus busData){
@@ -294,16 +307,6 @@ void pmbusStatus(){
       Log.noticeln(F("STATUS_CML_MEM_Logic_Fault !! "));
     }
     Log.noticeln(F(" "));
-//    if(wifistatus && mqttflag){
-//       tm = pmbus_readStatusTemp(ps_i2c_address);
-//       fa = pmbus_readStatusFan(ps_i2c_address);
-//       cm = pmbus_readStatusCml(ps_i2c_address);
-//       vo = pmbus_readStatusVout(ps_i2c_address);
-//       io = pmbus_readStatusIout(ps_i2c_address);
-//       in = pmbus_readStatusInput(ps_i2c_address);
-//       snprintf (msg, MSG_BUFFER_SIZE, "Cml:0x%02x Temp:0x%02x Fan:0x%02x Vout:0x%02x Iout:0x%02x Input:0x%02x", cm, tm, fa, vo, io, in);
-//       pub("pmbus/status/all", msg);
-//    }
 }
 
 void printFru(uint8_t first, uint8_t last, uint8_t *values) {

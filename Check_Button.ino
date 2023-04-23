@@ -194,9 +194,20 @@ void pubMQTT(String topic, const char* payload) {
   pubMQTT(topic.c_str(), payload);
 }
 
+void pubMQTT(String topic, String payload) {
+  pubMQTT(topic.c_str(), payload.c_str());
+}
+
 void pub(const char* topicori, const char* payload) {
   String topic = String(mqtt_topic) + String(topicori);
   pubMQTT(topic, payload);
+}
+
+void pub(const char* topicori, JsonObject& data) {
+  String dataAsString = "";
+  serializeJson(data, dataAsString);
+  String topic = String(mqtt_topic) + String(topicori);
+  pubMQTT(topic, dataAsString.c_str());
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
