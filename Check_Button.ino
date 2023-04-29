@@ -1,3 +1,20 @@
+int debounce = 20; // ms debounce period to prevent flickering when pressing or releasing the button
+int DCgap = 200; // max ms between clicks for a double click event
+int holdTime = 2000; // ms hold period: how long to wait for press+hold event
+int longHoldTime = 5000; // ms long hold period: how long to wait for press+hold event
+             
+bool buttonVal = HIGH; // value read from button
+bool buttonLast = HIGH; // buffered value of the button's previous state
+bool DCwaiting = false; // whether we're waiting for a double click (down)
+bool DConUp = false; // whether to register a double click on next release, or whether to wait and click
+bool singleOK = true; // whether it's OK to do a single click
+long downTime = -1; // time the button was pressed down
+long upTime = -1; // time the button was released
+bool ignoreUp = false; // whether to ignore the button release because the click+hold was triggered
+bool waitForUp = false; // when held, whether to wait for the up event
+bool holdEventPast = false; // whether or not the hold event happened already
+bool longHoldEventPast = false;// whether or not the long hold event happened already  // Other button variables
+
 void checkButton() {
   if(buttonflag) { 
       key = 0;         
@@ -95,7 +112,7 @@ void checkButton() {
 void setWifiMqtt(){
   int k = 0;
   delay(10);
-  Log.notice(CR );
+  // Log.notice(CR );
   Log.noticeln("Connecting to %s", ssid);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -108,9 +125,9 @@ void setWifiMqtt(){
           delay(10);
         if(digitalRead(kButtonPin) == 0){
               buttonflag = false;                           
-              serialflag = true;
+              // serialflag = true;
               wifistatus = false;
-              Log.begin(LOG_LEVEL, &Serial, false);
+              // Log.begin(LOG_LEVEL, &Serial, false);
               Log.noticeln (F("Skip Wifi, Only Serial mode"));
               delay(100);
               break;
@@ -118,26 +135,15 @@ void setWifiMqtt(){
        }   
     if( k >= 30){
         wifistatus = false;
-        serialflag = true;
-        Log.begin(LOG_LEVEL, &Serial, false);
+        // serialflag = true;
         break;
      }
-  }
-  
-  if(WiFi.status() == 3) {
-    wifistatus = true;
-    Log.noticeln("WiFi Connected.");
-    Log.noticeln("IP address: %s", WiFi.localIP().toString().c_str());
-  }
-  else {
-    wifistatus =false;
-    Log.noticeln("wifi Connected Failed");
-  }
-  delay(50);
- if(wifistatus){
-      Log.begin(LOG_LEVEL, &Serial1, false); //
-      randomSeed(micros());
-      Log.notice(CR );
+  } 
+ if(WiFi.status() == 3){     
+      // randomSeed(micros());
+      wifistatus = true;
+      Log.noticeln("WiFi Connected.");
+      Log.noticeln("IP address: %s", WiFi.localIP().toString().c_str());
       client.setCallback(callback);
       String client_id;
       client_id = clientID + String(WiFi.macAddress());
@@ -146,18 +152,22 @@ void setWifiMqtt(){
       if(client.connect(client_id.c_str(), mqtt_user, mqtt_password)) {
           mqttflag = true;
           Log.noticeln("MQTT Broker Connected.");
-//          client.subscribe("rrh/pmbus/set");
           sub("pmbus/set/#");
           sub("scpi/set/#");
-//          sub("pmbus/set/curr");
+        //  Log.noticeln("Subscription OK to the");
         } 
       else{
           mqttflag = false;        
           Log.noticeln("MQTT Broker Connected Failed");
       }
-    Log.noticeln("");
-    delay(100); 
+    serialflag = false;
+    Log.begin(LOG_LEVEL, &Serial1, false);    
   }
+  else {
+    wifistatus =false;
+    Log.noticeln("wifi Connected Failed");
+  }
+  delay(100);
 }
 
 void subMQTT(const char* topic) {

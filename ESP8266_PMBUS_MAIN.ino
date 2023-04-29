@@ -27,8 +27,6 @@
  *
  *   Author Dafeng 2022
 */
-
-
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <ArduinoLog.h>
@@ -135,28 +133,8 @@ unsigned long previousMillis = 0;
 long count = 0;
 uint16_t value = 0;
 float setcurr;
-
-int debounce = 20; // ms debounce period to prevent flickering when pressing or releasing the button
-int DCgap = 200; // max ms between clicks for a double click event
-int holdTime = 2000; // ms hold period: how long to wait for press+hold event
-int longHoldTime = 5000; // ms long hold period: how long to wait for press+hold event
-             // Other button variables
-boolean buttonVal = HIGH; // value read from button
-boolean buttonLast = HIGH; // buffered value of the button's previous state
-boolean DCwaiting = false; // whether we're waiting for a double click (down)
-boolean DConUp = false; // whether to register a double click on next release, or whether to wait and click
-boolean singleOK = true; // whether it's OK to do a single click
-long downTime = -1; // time the button was pressed down
-long upTime = -1; // time the button was released
-boolean ignoreUp = false; // whether to ignore the button release because the click+hold was triggered
-boolean waitForUp = false; // when held, whether to wait for the up event
-boolean holdEventPast = false; // whether or not the hold event happened already
-boolean longHoldEventPast = false;// whether or not the long hold event happened already
-
 WiFiClient eClient;
 PubSubClient client(mqtt_server, mqtt_port, eClient);
-DynamicJsonDocument doc(1024);
-JsonObject pmbus = doc.createNestedObject("pmbus");
 
 void setup() { 
     pinMode(kButtonPin, INPUT_PULLUP);
@@ -164,7 +142,7 @@ void setup() {
     defaultint();
     Serial1.begin(38400); 
     Serial.begin(9600);
-    Log.begin(LOG_LEVEL, &Serial1, false);  //
+    Log.begin(LOG_LEVEL, &Serial, false);  //
     Wire.begin(SDA_PIN, SCL_PIN);
 //  Wire.setClock(50000);    // Set the I2C clock(50kHz), default(100kHz);    
     digitalWrite(kLedPin, LOW);

@@ -1,17 +1,20 @@
 import paho.mqtt.client as mqtt 
 import time
+import sys
 #import datetime
-
 broker = '192.168.200.2'
 port = 1883
 username = 'dfiot'
 password = '123abc'
-Base_topic = "npi/"
+Base_topic = "npicsu/"
 pmbus_set = "pmbus/set"
 eepromaddr = 0x50
 command = "[08 {:02x} {:02x} {:02x} 10 01]" 
 #now  = datetime.datetime.now().strftime("%m_%d_%H")
 path_now = "eep24c02_" + time.strftime("%m_%d_%H", time.localtime()) + ".txt"
+
+file = open (path_now, "a")
+client = mqtt.Client()
 
 def on_connect(client, userdata, flags, rc):
 	if rc == 0:
@@ -40,32 +43,46 @@ def strmat(msg):
 	return list
 
 def on_message(client, userdata, msg):
-	print(strmat(str(msg.payload)))
-	file.write(strmat(str(msg.payload)) + "\n")
-	
-file = open (path_now, "a")
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-client.username_pw_set(username, password)
-client.connect(broker, port, 60)
-client.loop_start()
+	if(msg.topic.find('info/eread') > 0):
+		print(strmat(str(msg.payload)))
+		file.write(strmat(str(msg.payload)) + "\n")
 # sub('pmbus/info/eread')
-
-def sentcom(offset, addr = 0x50):
+def connect2mqtt():
+	client.on_connect = on_connect
+	client.on_message = on_message
+	client.username_pw_set(username, password)
+	client.connect(broker, port, 60)
+	client.loop_start()
+def disconect():
+	client.loop_stop()			    
+	print('disconnect')
+	client.disconnect()
+def sentcom(offset, addr=0x50):
 	msb = offset >> 8
 	lsb = offset & 0xff
 	pub(pmbus_set, command.format(addr, msb, lsb))
 	#print('%s' % command.format(addr, msb, lsb))
-file.write(" \n")
-pub(pmbus_set, '[AA 02 00]') # Disable Pmbus Polling
-time.sleep(1)
-for i in range(16):    #read EEPROM 16*16 = 256, 24C02
-	sentcom(i*16)
-	time.sleep(0.05)
-time.sleep(1)
-pub(pmbus_set, '[AA 02 01]') # Enable Pmbus Polling
-client.loop_stop()			    
-print('disconnect')
-client.disconnect()
-file.write(" \n")
+def readeeprom():
+	file.write(" \n")
+	pub(pmbus_set, '[AA 02 00]') # Disable Pmbus Polling
+	time.sleep(1)
+	for i in range(16):    #read EEPROM 16*16 = 256, 24C02
+		sentcom(i*16, eepromaddr)
+		time.sleep(0.05)
+	time.sleep(1)
+	pub(pmbus_set, '[AA 02 01]') # Enable Pmbus Polling
+	file.write(" \n")
+
+def main():
+	global eepromaddr
+	global Base_topic
+	if len(sys.argv) == 2:
+		Base_topic = (sys.argv[1] + '/')
+	if len(sys.argv) == 3:	
+		Base_topic = (sys.argv[1] + '/')
+		eepromaddr = int(sys.argv[2], 16)
+	connect2mqtt()
+	readeeprom()
+	disconect()
+if __name__ == '__main__':
+    main()

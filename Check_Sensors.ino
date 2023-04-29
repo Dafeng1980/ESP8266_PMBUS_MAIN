@@ -66,6 +66,8 @@ bool readpmbusdata(){
 }
 
 void publishPmbusData(struct PowerPmbus busData){
+  DynamicJsonDocument doc(1024);
+  JsonObject pmbus = doc.createNestedObject("pmbus");
   ledflash();   
  if (count%6 == 0) {
       ++value;     

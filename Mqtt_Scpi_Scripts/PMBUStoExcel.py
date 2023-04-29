@@ -61,7 +61,6 @@ class MQTTtoExcel:
     def on_message(self, client, userdata, msg):
         # if(msg.topic.find('word') > 0):
         #     print("Status Word(0x79): 0x%04x" % int(msg.payload[2:6], 16))
-
         if(str(msg.payload).find('PMBUS') > 0):
             print(time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()))
             self.ws.range('P3').value = ("0x%0x" % int(msg.payload[14:16], 16))
@@ -73,6 +72,21 @@ class MQTTtoExcel:
                 self.wb.close()
                 self.app.quit()
                 sys.exit("Complete ")
+
+        if(msg.topic.find('info/eread') > 0):
+            print(msg.payload.decode())
+            self.ws.range('A'+ "{:d}".format(self.eep_c)).value= msg.payload.decode()
+            self.eep_c = self.eep_c +1
+            if(self.eep_c > 29):
+                self.eep_c = 14
+        elif(msg.topic.find('info/read') > 0):
+            print(msg.payload.decode())
+            self.ws.range('A13').value= msg.payload.decode()
+        elif(msg.topic.find('info/write') > 0):
+            #print(msg.payload.decode())
+            self.ws.range('E11').value= msg.payload.decode()
+        elif(msg.topic.find('/info') > 0):
+            self.ws.range('G11').value= msg.payload.decode()
 
     def topic_json_callback(self, lient, userdata, msg):
         data = json.loads(msg.payload)
@@ -112,28 +126,7 @@ class MQTTtoExcel:
         self.ws.range('I4').value = ("%02x" % int(data["statusIo"]))
         print("statusInput: 0x%02x" % data["statusIn"])
         self.ws.range('I5').value = ("%02x" % int(data["statusIn"]))
-    # def topic_output_callback(self,lient, userdata, msg):
-    #     if(msg.topic.find('curr') > 0):
-    #         print("Onput Current: %.3fA" % float(msg.payload))
-    #         self.ws.range('B3').value=float(msg.payload)
-    def topic_info_callback(self, lient, userdata, msg):
-        if(msg.topic.find('eread') > 0):
-            print(msg.payload.decode())
-            self.ws.range('A'+ "{:d}".format(self.eep_c)).value= msg.payload.decode()
-            self.eep_c = self.eep_c +1
-            if(self.eep_c > 29):
-                self.eep_c = 14
-        elif(msg.topic.find('read') > 0):
-            print(msg.payload.decode())
-            self.ws.range('A13').value= msg.payload.decode()
-        elif(msg.topic.find('write') > 0):
-            #print(msg.payload.decode())
-            self.ws.range('E11').value= msg.payload.decode()
-        else:
-            self.ws.range('G11').value= msg.payload.decode()
-
-    
-
+ 
     def eeprom_com(self, offset, addr = 0x50):
         self.pub("pmbus/set", "[08 {:02x} {:02x} {:02x} 10 01]".format(addr, (offset >> 8) & 0xFF, (offset & 0xff)))
 
@@ -142,8 +135,6 @@ class MQTTtoExcel:
         client.on_connect = self.on_connect
         client.on_message = self.on_message
         client.username_pw_set(self.username, self.password)
-        # client.message_callback_add(self.Base_topic + "pmbus/output/#", self.topic_output_callback)
-        client.message_callback_add(self.Base_topic + "pmbus/info/#", self.topic_info_callback)
         client.message_callback_add(self.Base_topic + "pmbus/jsoninfo", self.topic_json_callback)
         #client.username_pw_set('dfiot', '123abc')
         #client.connect("192.168.200.2", 1883, 60)
@@ -157,6 +148,9 @@ class MQTTtoExcel:
 
 def main():
     ptoe = MQTTtoExcel("192.168.200.2")
+    if len(sys.argv) == 2:
+        ptoe.Base_topic = (sys.argv[1] + '/')
+    else: ptoe.Base_topic = 'npicsu/'
     # ptoe.set_records(16)
     ptoe.start()
     ptoe.set_polltime(1000)
