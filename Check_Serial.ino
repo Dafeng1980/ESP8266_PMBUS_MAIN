@@ -13,7 +13,9 @@ void checkSerial(){
       else if ((char)readval == '8') Log.noticeln("TBD");
       else if ((char)readval == '9') pecstatus();
       else if ((char)readval == 'c'  || (char)readval == 'C') serial_smbus_commands();
-      else if ((char)readval == 'e'  || (char)readval == 'E') setIntervaltime();   
+      else if ((char)readval == 'e'  || (char)readval == 'E') setIntervaltime();
+      else if ((char)readval == 'a'  || (char)readval == 'A') set_host();
+      else if ((char)readval == 'b'  || (char)readval == 'B') set_eeprom();   
       else if ((char)readval == 'r'  || (char)readval == 'R') reset_address();
       else if ((char)readval == 'z'  || (char)readval == 'Z') esprestar();
       else if ((char)readval == 'h'  || (char)readval == 'H') {
@@ -186,7 +188,7 @@ void smbus_command_sent(uint8_t com){
           pub("pmbus/info/read", msg);
         }
        else  pub("pmbus/info/write", "Read Word Fail.");
-//       if(mqttflag) f("rrh/pmbus/info/read", msg);       
+//       if(mqttflag) f("***/pmbus/info/read", msg);       
         Log.noticeln("%s", msg);               
         delay(10);       
       break;

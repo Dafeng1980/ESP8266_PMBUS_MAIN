@@ -25,7 +25,6 @@ bool readpmbusdata(){
             }
          }
           if(serialflag) Log.noticeln(F("PMBUS Polling Fail loop: %l, Type 'h' To Help"), count);
-//          else          Log.noticeln(F("PMBUS Polling Fail loop: %l,"), count);
           delay(10);      
           return ret = false;
        }
@@ -77,7 +76,6 @@ void publishPmbusData(struct PowerPmbus busData){
     }
   pmbus["inputVolt"] = busData.inputV;
   snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputV);
-//  client.publish("rrh/pmbus/input/volt", msg);
   pub("pmbus/input/volt", msg);
   pmbus["inputCurr"] =  busData.inputA;
   snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.inputA);
@@ -109,8 +107,10 @@ void publishPmbusData(struct PowerPmbus busData){
     pub("pmbus/status/all", msg);
   }
   if(expandengery){
+    pmbus["inputEne"] = busData.inputE;
     snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputE);
     pub("pmbus/input/energy", msg);
+    pmbus["outputEne"] = busData.outputE;
     snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.outputE);
     pub("pmbus/output/energy", msg);
   }
@@ -128,8 +128,10 @@ void publishPmbusData(struct PowerPmbus busData){
   }
   
   if(standbyflag){
+    pmbus["standbyV"] = busData.outputVsb;
     snprintf (msg, MSG_BUFFER_SIZE, "%5.4f", busData.outputVsb);
     pub("pmbus/output/vsb", msg);
+    pmbus["standbyC"] = busData.outputAsb;
     snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.outputAsb);
     pub("pmbus/output/csb", msg);
   }

@@ -24,16 +24,16 @@
  *  
  * Publish the topic "npi/scpi/set" using the MQTT protocol with the message content "%*IDN?%".
  *  "%" , "%" are the starting and ending marks for sending SCPI string format messages. Used for communication with SCPI serial measuring instruments.
- *
- *   Author Dafeng 2022
+ *   Author Dafeng 2021
 */
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <ArduinoLog.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <EEPROM.h>
 
-#define Base_Topic "npi/"
+#define DEVICE_ID_Topic "npi/"
 #define TWI_BUFFER_SIZE 256
 #define PEC_ENABLE  1      //Smbus PEC(Packet Error Code) support. 1 = Enabled, 0 = Disabled.
 #define PEC_DISABLE  0
@@ -71,6 +71,14 @@ static struct PowerPmbus
   uint8_t i2cAddr;  
 }pd;
 
+struct eeprom
+{
+  uint8_t host;
+  char ssid[32];
+  char password[16];
+  char mqtt_broker[64];
+}eep;
+
 uint8_t smbus_data[256];
 static uint8_t eepbuffer[256];
 static uint8_t key = 0;
@@ -102,30 +110,26 @@ bool currlh = true;
 
 const char* ssid = "FAIOT";           // Enter your WiFi name 
 const char* password = "20212021";    // Enter WiFi password
-//const char* ssid = "CMCC-kS9s";           //
-//const char* password = "DA431431";    // 
 const char* mqtt_user = "dfiot";      //Raspberry MQTT Broker
 const char* mqtt_password = "123abc";
 const char* mqtt_server = "192.168.200.2";
-//const char* mqtt_server = "192.168.12.1";
 const uint16_t mqtt_port =  1883;
-//const char *mqtt_user = "emqx";
-//const char *mqtt_password = "public";
-//const char *mqtt_server = "broker.emqx.io";  // Free Public MQTT broker 
-//const int mqtt_port = 1883;  //There is no privacy protection for public access broker.
-//                              //Any device can publish and subscribe to topics on it.
 const char* clientID = "zhsnpi1fdevices001";
-
-const int SDA_PIN = 14;         //ESP-01S Board SDA = 2; SCL = 0;   ESP8266 HEKR 1.1 Board  SDA = 14; SCL = 0
-const int SCL_PIN = 0;
-const uint8_t kLedPin = 4;
+//const char *mqtt_user = "emqx";    // Free Public MQTT broker 
+//const char *mqtt_password = "public";    //There is no privacy protection for public access broker.
+//const char *mqtt_server = "broker.emqx.io";  
+//const int mqtt_port = 1883;    //Any device can publish and subscribe to topics on it.
+                              
+const int SDA_PIN = 14;         //ESP-01S Board SDA = 2; SCL = 0;   
+const int SCL_PIN = 0;         //ESP8266 HEKR 1.1 Board  SDA = 14; SCL = 0
+const uint8_t kLedPin = 4;     // ESP-12F Board SDA = 4; SCl = 0;
 const uint8_t kButtonPin = 13;       
 //const int SDA_PIN = 4;         
-//const int SCL_PIN = 0;       // ESP-12F Board SDA = 4; SCl = 0;
+//const int SCL_PIN = 0;      
 //const uint8_t kLedPin = 12;
 const char hex_table[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-char mqtt_topic[50] = Base_Topic;
+char mqtt_topic[50] = DEVICE_ID_Topic;
 char msg[MSG_BUFFER_SIZE];
 char scpicmd[MSG_BUFFER_SIZE];
 char ui_buffer[UI_BUFFER_SIZE];
@@ -133,8 +137,12 @@ unsigned long previousMillis = 0;
 long count = 0;
 uint16_t value = 0;
 float setcurr;
+
 WiFiClient eClient;
 PubSubClient client(mqtt_server, mqtt_port, eClient);
+
+
+
 
 void setup() { 
     pinMode(kButtonPin, INPUT_PULLUP);
@@ -142,6 +150,7 @@ void setup() {
     defaultint();
     Serial1.begin(38400); 
     Serial.begin(9600);
+    EEPROM.begin(512);
     Log.begin(LOG_LEVEL, &Serial, false);  //
     Wire.begin(SDA_PIN, SCL_PIN);
 //  Wire.setClock(50000);    // Set the I2C clock(50kHz), default(100kHz);    

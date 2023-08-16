@@ -73,7 +73,7 @@ void checkButton() {
   buttonLast = buttonVal;
  }
  
-  if(subsmbusflag){                     //sent smbus command by subscribe("rrh/pmbus/set")
+  if(subsmbusflag){                     //sent smbus command by subscribe("***/pmbus/set")
       if (smbus_data[0] >= 0 && smbus_data[0] <=9) smbus_command_sent(smbus_data[0]);   // send smbus command
       else if(smbus_data[0] == 0xAA){                                                   // set pmbus 
          if     (smbus_data[1] == 0) ps_i2c_address = smbus_data[2];           //[AA 00 XX] Modify the Pmbus device address
@@ -86,8 +86,9 @@ void checkButton() {
          else if(smbus_data[1] == 7) expandengery = true;            //
          else if(smbus_data[1] == 8) expandengery = false;         
          else if(smbus_data[1] == 9) pecstatus();                   //[AA 09] PEC Enable/Disable.
+         else if(smbus_data[1] == 0x0A) set_custom(smbus_data[2]);         //set WiFI MQTT broker from EEPROM
          else if(smbus_data[1] == 0xAA) key = 4;                     //set default
-         else if(smbus_data[1] ==0xBB) esprestar();                 //reset device
+         else if(smbus_data[1] == 0xBB) esprestar();                 //reset device
        }
      else if(smbus_data[0] == 0xCC){                               //send SCPI script command  
         if(smbus_data[1] == 0) currlh = true;
@@ -110,12 +111,23 @@ void checkButton() {
 }
 
 void setWifiMqtt(){
-  int k = 0;
+  int k = 0; 
+  Log.notice(CR );
+  Log.notice(F("ESP8266 Device ID topic: %s." CR), DEVICE_ID_Topic);
   delay(10);
-  // Log.notice(CR );
-  Log.noticeln("Connecting to %s", ssid);
+  uint8_t host = EEPROM.read(0x00);
+  if(host == 0){
+    strncpy(eep.ssid, ssid, 32);
+    strncpy(eep.password, password, 16);
+    strncpy(eep.mqtt_broker, mqtt_server, 64);
+  }
+  else if (host >= 1) {
+      EEPROM.get(0, eep);
+  }
+  Log.noticeln("EE read Host:%d", host);
+  Log.noticeln("Connecting to %s", eep.ssid);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(eep.ssid, eep.password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     k++;
@@ -125,9 +137,7 @@ void setWifiMqtt(){
           delay(10);
         if(digitalRead(kButtonPin) == 0){
               buttonflag = false;                           
-              // serialflag = true;
               wifistatus = false;
-              // Log.begin(LOG_LEVEL, &Serial, false);
               Log.noticeln (F("Skip Wifi, Only Serial mode"));
               delay(100);
               break;
@@ -135,7 +145,6 @@ void setWifiMqtt(){
        }   
     if( k >= 30){
         wifistatus = false;
-        // serialflag = true;
         break;
      }
   } 
@@ -148,6 +157,7 @@ void setWifiMqtt(){
       String client_id;
       client_id = clientID + String(WiFi.macAddress());
       Log.noticeln("Client_id = %s", client_id.c_str());
+      client.setServer(eep.mqtt_broker, mqtt_port);
       delay(100);
       if(client.connect(client_id.c_str(), mqtt_user, mqtt_password)) {
           mqttflag = true;
@@ -223,9 +233,9 @@ void pub(const char* topicori, JsonObject& data) {
 void callback(char* topic, byte* payload, unsigned int length) {
     String inPayload = "";
     String currtopic = String(mqtt_topic) + "scpi/set/curr";
-//    byte* p = (byte*)malloc(length + 1);
-//    memcpy(p, payload, length);
-//    p[length] = '\0';
+   //    byte* p = (byte*)malloc(length + 1);
+   //    memcpy(p, payload, length);
+   //    p[length] = '\0';
     Log.noticeln(F("Message arrived [ %s ]" ), topic);
    if(currtopic.compareTo(topic) == 0) {
       for (int i = 0; i < length; i++) {
@@ -277,7 +287,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
           }
        }
    }
-  // else if ((char)payload[0] == '0') key = 0;   
+   // else if ((char)payload[0] == '0') key = 0;   
   for (int i = 0; i < length; i++) {
         Log.notice("%c", (char)payload[i]);
     }
@@ -301,15 +311,16 @@ void mqttLoop(){
 }
 
 void reconnect() {
-  // Loop until we're reconnected
-  //client.connect(clientID, mqtt_user, mqtt_password);
+    // Loop until we're reconnected
+    //client.connect(clientID, mqtt_user, mqtt_password);
   int k = 0;
   while (!client.connected()) {
      Log.notice("Attempting MQTT connection..."); // Attempt to connect   
-//     String clientId = "ESP8266Client-";
-//     clientId += String(random(0xffff), HEX);
+       //     String clientId = "ESP8266Client-";
+       //     clientId += String(random(0xffff), HEX);
       String client_id;
       client_id = clientID + String(WiFi.macAddress());
+      client.setServer(eep.mqtt_broker, mqtt_port);
     if (client.connect(client_id.c_str(), mqtt_user, mqtt_password)) {
       Log.noticeln("connected to broker");
       pub("outTopic", "Broker reconnected");  // Once connected, publish an announcement...
@@ -317,7 +328,7 @@ void reconnect() {
     }
     else {
       Log.notice("Failed, rc= %d", client.state());
-//      Serial1.print(client.state());
+       //      Serial1.print(client.state());
       Log.noticeln(" try again in 2 seconds");
       k++;
       delay(2000);   // Wait 2 seconds before retrying
@@ -357,7 +368,7 @@ void pmbus_devices_init(){
     scanpsu = false;
     eeprom_address = 0x50 + (ps_i2c_address & 0x07);
     delay(100);
- }
+}
 
 int pmbusdetects() {
   uint8_t n = 0, address, rerror;
@@ -492,7 +503,7 @@ void reset_address(){
       Log.noticeln(F("Input Patner PSU address:"));
       ps_patner_address = read_int();
       Log.noticeln("New Patner PSU address: 0x%x", ps_patner_address);
-      delay(200);
+      delay(100);
 }
 
 void ledflash(){
@@ -512,7 +523,7 @@ void monitorstatus(){
       pub("pmbus/monitor", "0");
   }
   delay(100);
- }
+}
 
 void standbystatus(){
   standbyflag = !standbyflag;
@@ -523,9 +534,62 @@ void standbystatus(){
   else {
     Log.noticeln(F("Standby Disable"));
     pub("pmbus/standby", "0");
-  }
+    }
   delay(100);
- }
+}
+
+void set_custom(uint8_t hostval){
+  EEPROM.write(0x00, hostval);
+  EEPROM.commit();
+  Log.noticeln("Host Write:%d", hostval);
+  delay(50);
+}
+
+void set_eeprom(){
+      Log.noticeln("");
+      EEPROM.get(0, eep);
+      Log.noticeln(F("Old host set: %d"), eep.host);
+      Serial.println("Old values are: "+String(eep.ssid)+", "+String(eep.password)+", "+String(eep.mqtt_broker));
+      Log.noticeln(F("Input host set: (0 for default, others for eeprom)"));
+      eep.host = read_int();     
+      Log.noticeln(F("New host set: %d"), eep.host);
+      Log.noticeln(F("Input WiFi ssid:"));
+      strncpy(eep.ssid, read_string(), 32);
+      Log.noticeln(F("New WiFi ssid: %s"), eep.ssid);
+      Log.noticeln(F("Input WiFi password:"));
+      strncpy(eep.password, read_string(), 16);
+      Log.noticeln(F("New WiFi password: %s"), eep.password);
+      Log.noticeln(F("Input MQTT broker:"));
+      strncpy(eep.mqtt_broker, read_string(), 64);
+      Log.noticeln(F("New MQTT broker: %s"), eep.mqtt_broker);
+      EEPROM.put(0,eep);
+      Log.noticeln(F("Do you want to save the data to EEPROM. Yes(Y), No(N):"));
+      char val;
+      val = read_char(); 
+      if ((char)val == 'y'  || (char)val == 'Y') {
+      EEPROM.commit();
+      Log.noticeln(F("EEprom Write"));
+      delay(20);
+      }
+      else Log.noticeln(F("EEprom Cancel Exit"));
+      delay(50);
+}
+
+void set_host(){
+  Log.noticeln(F("Old host set: %d"), EEPROM.read(0));
+  Log.noticeln(F("Input host set: (0 for default, others for eeprom)"));
+  eep.host = read_int();     
+  Log.noticeln(F("New host set: %d"), eep.host);
+  EEPROM.write(0, eep.host);
+  Log.noticeln(F("Do you want to save the data to EEPROM. Yes(Y), No(N):"));
+  char val;
+  val = read_char(); 
+  if ((char)val == 'y'  || (char)val == 'Y') {
+      EEPROM.commit();
+      delay(20);
+  }
+  delay(50);
+}
 
 void esprestar(){
     Log.noticeln(F("delay 3S Reset "));
@@ -539,6 +603,7 @@ void esprestar(){
 void printhelp(){
       Log.noticeln(F("************* WELCOME TO PMbus & SCPI Tools **************"));
       Log.notice(F("Here are commands can be used." CR));
+      Log.notice(F(" * > ESP8266 Device ID topic: %s " CR), DEVICE_ID_Topic);
       Log.notice(F(" 1 > Moitor PSU All Status On/Off" CR));
       Log.notice(F(" 2 > Add sensors Detect" CR));
       Log.notice(F(" 3 > Add engery Detect" CR));
@@ -546,6 +611,8 @@ void printhelp(){
       Log.notice(F(" 5 > Scan PSU Address At PMbus" CR));      
       Log.notice(F(" 9 > Enable/Disable PEC" CR));
       Log.notice(F(" 0 > Set All to Default" CR));
+      Log.notice(F(" a > Set the host remote/local) " CR));
+      Log.notice(F(" b > Set the WiFi_ID_PASSWORD MQTT_BROKER) " CR));
       Log.notice(F(" e > Set the PMbus Interval Timing" CR));
       Log.notice(F(" c > Enter The SMbus Command Function & Read EEPROM" CR));
       Log.notice(F(" r > Modify the PMbus Device Address" CR));
