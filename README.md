@@ -4,6 +4,7 @@
  ![image](Doc/ardunio.png)![image](Doc/HEKR_PIN.png) <br/>
  
  ###  Client Application Software for Mobile & PC <br/>
+ 
  * Android APP
 > 1. [Serial USB Terminal APP](https://play.google.com/store/apps/details?id=de.kai_morich.serial_usb_terminal&hl=en "https://play.google.com/store/apps/details?id=de.kai_morich.serial_usb_terminal&hl=en") <br/>
 > 2. [MQTT Dashboard APP](https://play.google.com/store/apps/details?id=com.app.vetru.mqttdashboard "https://play.google.com/store/apps/details?id=com.app.vetru.mqttdashboard") <br/>
@@ -14,7 +15,7 @@
 
 * Mqtt python APP 
 > 1. [PYTHON MQTT](https://pypi.org/project/paho-mqtt/ "https://pypi.org/project/paho-mqtt/") <br/>
-> 2. [Adapter Matt Script](Mqtt_Scripts/MQTT2Twi.py) <br/>
+> 2. [Adapter Mqtt Script](Mqtt_Scripts/MQTT2Twi.py) <br/>
 
 
 ### Schematic & Adapter
