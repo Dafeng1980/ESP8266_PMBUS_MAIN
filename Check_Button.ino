@@ -18,8 +18,7 @@ bool longHoldEventPast = false;// whether or not the long hold event happened al
 void checkButton() {
   if(buttonflag) { 
       key = 0;         
-      buttonVal = digitalRead(kButtonPin);
-                // Button pressed down
+      buttonVal = digitalRead(kButtonPin); // Button pressed down           
      if (buttonVal == LOW && buttonLast == HIGH && (millis() - upTime) > debounce) {
         downTime = millis();
         ignoreUp = false;
@@ -51,9 +50,8 @@ void checkButton() {
     DCwaiting = false;
   }
   // Test for hold
-  if (buttonVal == LOW && (millis() - downTime) >= holdTime) {
-    // Trigger "normal" hold
-    if (not holdEventPast) {
+  if (buttonVal == LOW && (millis() - downTime) >= holdTime) { 
+    if (not holdEventPast) {    // Trigger "normal" hold
       key = 3;
       waitForUp = true;
       ignoreUp = true;
@@ -61,10 +59,9 @@ void checkButton() {
       DCwaiting = false;
       //downTime = millis();
       holdEventPast = true;
-    }
-    // Trigger "long" hold
-    if ((millis() - downTime) >= longHoldTime) {
-      if (not longHoldEventPast) {
+    } 
+    if ((millis() - downTime) >= longHoldTime) { // Trigger "long" hold
+      if (not longHoldEventPast) {  
         key = 4;
         longHoldEventPast = true;
       }
@@ -138,7 +135,7 @@ void setWifiMqtt(){
         if(digitalRead(kButtonPin) == 0){
               buttonflag = false;                           
               wifistatus = false;
-              Log.noticeln (F("Skip Wifi, Only Serial mode"));
+              Log.noticeln (F("Skip Wifi Connect, Run Serial mode"));
               delay(100);
               break;
           }
@@ -162,6 +159,8 @@ void setWifiMqtt(){
       if(client.connect(client_id.c_str(), mqtt_user, mqtt_password)) {
           mqttflag = true;
           Log.noticeln("MQTT Broker Connected.");
+          snprintf (msg, MSG_BUFFER_SIZE, "IP address: %s, Broker: %s Connected", WiFi.localIP().toString().c_str(), eep.mqtt_broker);
+          pub("sysTopic", msg);
           sub("pmbus/set/#");
           sub("scpi/set/#");
         //  Log.noticeln("Subscription OK to the");
@@ -310,32 +309,32 @@ void mqttLoop(){
     }
 }
 
-void reconnect() {
-    // Loop until we're reconnected
-    //client.connect(clientID, mqtt_user, mqtt_password);
+void reconnect() {     
   int k = 0;
-  while (!client.connected()) {
-     Log.notice("Attempting MQTT connection..."); // Attempt to connect   
+  while (!client.connected()) {               // Loop until we're reconnected  
+    Serial.println(F("Attempting MQTT connection...")); // Attempt to connect   
+        //  Log.noticeln(F("Attempting MQTT connection...")); 
        //     String clientId = "ESP8266Client-";
-       //     clientId += String(random(0xffff), HEX);
+      //     clientId += String(random(0xffff), HEX);
       String client_id;
       client_id = clientID + String(WiFi.macAddress());
-      client.setServer(eep.mqtt_broker, mqtt_port);
+      client.setServer(eep.mqtt_broker, mqtt_port);   //client.connect(clientID, mqtt_user, mqtt_password);
     if (client.connect(client_id.c_str(), mqtt_user, mqtt_password)) {
-      Log.noticeln("connected to broker");
-      pub("outTopic", "Broker reconnected");  // Once connected, publish an announcement...
+      Serial.println(F("connected to broker"));
+      pub("sysTopic", "Broker reconnected");  // Once connected, publish an announcement...
       mqttflag = true;   
     }
     else {
-      Log.notice("Failed, rc= %d", client.state());
-       //      Serial1.print(client.state());
-      Log.noticeln(" try again in 2 seconds");
+      // Log.notice("Failed, rc= %d", client.state());
+      Serial.printf("Failed, rc= %d\n", client.state());
+      Serial.println(F(" try again in 2 seconds"));
       k++;
       delay(2000);   // Wait 2 seconds before retrying
         if( k >= 5){
                 mqttflag = false;
                 wifistatus = false;
-                Log.noticeln(F("WiFi connect Failed!!"));
+                Serial.println(F("WiFi connect Failed!!"));
+                Log.begin(LOG_LEVEL, &Serial, false);
                 delay(100);
                 break;
             }                   

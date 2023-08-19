@@ -110,9 +110,9 @@ bool currlh = true;
 
 const char* ssid = "FAIOT";           // Enter your WiFi name 
 const char* password = "20212021";    // Enter WiFi password
-const char* mqtt_user = "dfiot";      //Raspberry MQTT Broker
+const char* mqtt_user = "dfiot";      
 const char* mqtt_password = "123abc";
-const char* mqtt_server = "192.168.200.2";
+const char* mqtt_server = "192.168.200.2"; //Raspberry Local MQTT Broker
 const uint16_t mqtt_port =  1883;
 const char* clientID = "zhsnpi1fdevices001";
 //const char *mqtt_user = "emqx";    // Free Public MQTT broker 
@@ -123,10 +123,7 @@ const char* clientID = "zhsnpi1fdevices001";
 const int SDA_PIN = 14;         //ESP-01S Board SDA = 2; SCL = 0;   
 const int SCL_PIN = 0;         //ESP8266 HEKR 1.1 Board  SDA = 14; SCL = 0
 const uint8_t kLedPin = 4;     // ESP-12F Board SDA = 4; SCl = 0;
-const uint8_t kButtonPin = 13;       
-//const int SDA_PIN = 4;         
-//const int SCL_PIN = 0;      
-//const uint8_t kLedPin = 12;
+const uint8_t kButtonPin = 13; // ESP-12F kLedPin = 12      
 const char hex_table[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
 char mqtt_topic[50] = DEVICE_ID_Topic;
@@ -141,9 +138,6 @@ float setcurr;
 WiFiClient eClient;
 PubSubClient client(mqtt_server, mqtt_port, eClient);
 
-
-
-
 void setup() { 
     pinMode(kButtonPin, INPUT_PULLUP);
     pinMode(kLedPin, OUTPUT);
@@ -151,7 +145,7 @@ void setup() {
     Serial1.begin(38400); 
     Serial.begin(9600);
     EEPROM.begin(512);
-    Log.begin(LOG_LEVEL, &Serial, false);  //
+    Log.begin(LOG_LEVEL, &Serial, false);  
     Wire.begin(SDA_PIN, SCL_PIN);
 //  Wire.setClock(50000);    // Set the I2C clock(50kHz), default(100kHz);    
     digitalWrite(kLedPin, LOW);

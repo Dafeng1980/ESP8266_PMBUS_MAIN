@@ -76,7 +76,7 @@ void publishPmbusData(struct PowerPmbus busData){
     }
   pmbus["inputVolt"] = busData.inputV;
   snprintf (msg, MSG_BUFFER_SIZE, "%3.2f", busData.inputV);
-  pub("pmbus/input/volt", msg);
+  pub("pmbus/input/volt", msg);   //  client.publish("***/pmbus/input/volt", msg);
   pmbus["inputCurr"] =  busData.inputA;
   snprintf (msg, MSG_BUFFER_SIZE, "%4.3f", busData.inputA);
   pub("pmbus/input/curr", msg);
@@ -182,8 +182,7 @@ void pmbusStatus(){
     Log.noticeln(F("========= READ ALL STATUS =========="));
     Log.noticeln(F(" "));
     w_val = pd.statusWord;
-    Log.noticeln(F("STATUS WORD:%X,  %B"), w_val, w_val);
-//    Serial.printf("%04x\n", w_val);
+    Log.noticeln(F("STATUS WORD:%X,  %B"), w_val, w_val); //    Serial.printf("%04x\n", w_val);
     msb = w_val >> 8;
     lsb = w_val & 0xFF;
     Log.noticeln("HIGH:0x%x,  %B", msb, msb);
@@ -293,10 +292,6 @@ void pmbusStatus(){
     if(lsb & 0x02){
       cm = pmbus_readStatusCml(ps_i2c_address);
       Log.noticeln(F("STATUS_CML: %B,  0x%x"), cm, cm);
-//      Serial.print(F("STATUS_CML 0B "));
-//      printBits(cm);
-//      Serial.print(F("    : 0x"));
-//      Serial.printf("%02x\n", cm);
       if(cm & 0x80)
       Log.noticeln(F("STATUS_CML_InvalidCMD !! "));
       if(cm & 0x40)

@@ -27,25 +27,30 @@ class MQTT2Twi:
         self.sm_write_word = "[04 {:02x} {:02x} {:02x} {:02x}]"
         self.eeprom_read = "[08 {:02x} {:02x} {:02x} {:02x} {:02x}]"
         # self.client = mqtt.Client()
+        self.mqttsentstatus = False
+        self.mqtt_read = ''
+        self.mqtt_topic = ''
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             print("Connected success")
-        #   sub('pmbus/info/eread')
         else:
             print(f"Connected fail with code {rc}")
-        #     print("Connected with result code "+str(rc))
 
     def on_message(self, client, userdata, msg):
-        #print(f"{msg.topic}        {msg.payload}")
-        print(f"{msg.topic}        {msg.payload}")
+        if (self.mqttsentstatus):    
+            self.mqtt_topic = msg.topic
+            self.mqtt_read = msg.payload
+            self.mqttsentstatus = False
+        # print(f"{msg.topic}        {msg.payload}")
 
     def pub(self, topic, msg):
         self.client.publish(self.topic_prefix + topic, msg, qos=0, retain=False)
+        self.mqttsentstatus = True
+        print(msg)
 
     def pub_pmbus_set(self, msg):
         self.pub(self.pmbus_set, msg)
-        print(msg)
 
     def sub(self, topic):
         self.client.subscribe(self.topic_prefix + topic, qos=0)
@@ -84,6 +89,15 @@ class MQTT2Twi:
     def setEepromAddress(self, addr):
         self.eeprom_addr = addr
 
+    def playload_read(self):
+        return self.mqtt_read
+
+    def topic_read(self):
+        return self.mqtt_topic
+
+    def get_sentstatus(self):
+        return self.mqttsentstatus
+
     def mqtt_init_start(self):
         # client = mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -92,7 +106,6 @@ class MQTT2Twi:
         self.client.connect(self.mqtt_server, self.port, 60)
         self.client.loop_start()
         print('mqtt start')
-        #sub('pmbus/info/eread')
 
     def mqtt_disconnect(self):
         self.client.loop_stop()
@@ -103,8 +116,6 @@ class MQTT2Twi:
     def i2cwrite_read(self, listcom, rcount,):
         stra = self.i2ccom2hexstr(listcom, rcount)
         self.pub_pmbus_set(stra)
-        # self.pub(self.pmbus_set, stra)
-        # print(stra)
 
     def i2cwrite(self, listcom):
         self.i2cwrite_read(listcom, self.no_read)

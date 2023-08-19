@@ -4,7 +4,6 @@ Created on 2023
 @author: Dafeng
 """
 import time
-from tkinter import W
 import paho.mqtt.client as mqtt
 import sys
 
@@ -46,15 +45,15 @@ class MQTT2Twi:
 
     def on_message(self, client, userdata, msg):
         if (self.mqttsentstatus):
-            # print(f"{msg.topic}        {msg.payload}")
             self.mqtt_topic = msg.topic
             self.mqtt_read = msg.payload
             self.mqttsentstatus = False
-            self.mqttreadstatus = True
+            # self.mqttreadstatus = True
         # else :  print(f"{msg.topic}        {msg.payload}")  
 
     def pub(self, topic, msg):
         self.client.publish(self.topic_prefix + topic, msg, qos=0, retain=False)
+        self.mqttsentstatus = True
 
     def pub_pmbus_set(self, msg):
         self.pub(self.pmbus_set, msg)
@@ -100,6 +99,15 @@ class MQTT2Twi:
 
     def setEepromAddress(self, addr):
         self.eeprom_addr = addr
+
+    def playload_read(self):
+        return self.mqtt_read
+
+    def topic_read(self):
+        return self.mqtt_topic
+
+    def get_sentstatus(self):
+        return self.mqttsentstatus
 
     def mqtt_init_start(self):
         self.client.on_connect = self.on_connect
@@ -197,25 +205,23 @@ class MQTT2Twi:
     def scpi_com_send(self, msg):
         if msg[-1] == '?':
             self.pub_scpi_set('%'+msg+'%')
-            self.mqttsentstatus = True
             time.sleep(0.05)
             # print(self.mqtt_topic)
             while True:
-                if self.mqttreadstatus and str(self.mqtt_topic).find('readback') > 0 :
-                    self.mqttreadstatus = False
+                if self.mqttsentstatus == False and str(self.mqtt_topic).find('readback') > 0 :
+                    # self.mqttreadstatus = False
                     self.timecount = 0
                     return self.mqtt_read.decode()
                 time.sleep(0.05)
                 self.timecount = self.timecount +1
                 if self.timecount >= 60:
-                    self.mqttreadstatus = False
+                    # self.mqttreadstatus = False
                     self.timecount = 0
                     print('scpi read timeout .')
                     break
 
         else:
             self.pub_scpi_set('%'+msg+'%')
-            self.mqttsentstatus = True
             time.sleep(0.05)   
             return "scpi sent"
 

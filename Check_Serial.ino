@@ -131,7 +131,7 @@ void serial_smbus_commands(){
         smbus_command_sent(user_command);
       }
       else Log.noticeln(F("Smbus Invalid format" ));
-//   else  Serial.println(user_command);                       // Print user command         
+      //   else  Serial.println(user_command);            
   }
   while (user_command != 'm');
 }
@@ -160,7 +160,6 @@ void smbus_command_sent(uint8_t com){
       uint8_t actual_size;
       int count;
       char d[800];
-//   const char hex_table[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
       struct smbusCommand
         {      
             uint8_t commands;
@@ -187,8 +186,7 @@ void smbus_command_sent(uint8_t com){
           snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X]", sm.commands, sm.databyte);
           pub("pmbus/info/read", msg);
         }
-       else  pub("pmbus/info/write", "Read Word Fail.");
-//       if(mqttflag) f("***/pmbus/info/read", msg);       
+       else  pub("pmbus/info/write", "Read Word Fail.");      
         Log.noticeln("%s", msg);               
         delay(10);       
       break;
@@ -214,7 +212,7 @@ void smbus_command_sent(uint8_t com){
         Log.noticeln(F("Smbus Read Block:"));
         ps_i2c_address_ = smbus_data[1];
         sm.commands = smbus_data[2];
-        sm.blocksize_b = smbus_data[3]; //Max size 32 block
+        sm.blocksize_b = smbus_data[3]; 
         if(sm.blocksize_b > 255) {
              Log.errorln(F("Read Blocks: Fail size too big."));
              pub("pmbus/info/read", "Read Blocks: Fail size too big.");
