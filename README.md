@@ -13,14 +13,12 @@
 * PC APP
 > 1. [MQTTBox](https://github.com/workswithweb/MQTTBox) <br/>
 
-* Mqtt python APP 
+* Mqtt python
 > 1. [PYTHON MQTT](https://pypi.org/project/paho-mqtt/ "https://pypi.org/project/paho-mqtt/") <br/>
 > 2. [Adapter Mqtt Script](Mqtt_Scripts/MQTT2Twi.py) <br/>
 
-
-### Schematic & Adapter
-![image](Doc/esp8266mqtt.png) <br/>
-
+### [Schematic](Doc/esp8266_pmbus_c.pdf) & Adapter
+![image](Doc/ESP8266_Adaper_sch.png) <br/>
 ![image](Doc/Esp8266_adp.png) <br/>
 
 ### App & Software
