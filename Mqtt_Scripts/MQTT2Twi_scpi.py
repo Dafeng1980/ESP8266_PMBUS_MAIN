@@ -203,7 +203,7 @@ class MQTT2Twi:
         self.pub_pmbus_set(stra)
     
     def scpi_com_send(self, msg):
-        if msg[-1] == '?':
+        if msg.find('?') > 0:
             self.pub_scpi_set('%'+msg+'%')
             time.sleep(0.05)
             # print(self.mqtt_topic)

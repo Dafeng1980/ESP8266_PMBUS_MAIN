@@ -6,8 +6,9 @@ void sendscpiread(char *msg) {
       return;
    }
   Serial.println(msg);
-  if(msg[(cont_str(msg) - 2)] == '?') {
-        if(read_scpi() != 0xAF) {                 
+  String scpi_str = msg;
+  if(scpi_str.lastIndexOf("?") > 0){
+        if(read_scpi() != 0xAF) {                
                  Log.noticeln("%s", ui_buffer);
                  pub("scpi/readback", ui_buffer);  
              }
@@ -77,7 +78,7 @@ uint8_t read_scpi()
     c = Serial.read();      //read one character
     if (((char) c == '\r') || ((char) c == '\n')) break;  // if carriage return or linefeed, stop and return data
     if (c >= 0) ui_buffer[index++]=(char) c;   // put character into ui_buffer   
-    if (currentread - previousMillis >= 2000) return 0xAF;
+    if (currentread - previousMillis >= 3000) return 0xAF;
   }
   ui_buffer[index]='\0';  // terminate string with NULL
   if ((char) c == '\r')    // if the last character was a carriage return, also clear linefeed if it is next character
