@@ -3,7 +3,7 @@
  * Boards HW Libraries [ESP8266](https://github.com/esp8266/Arduino)  <br/> 
  ![image](Doc/ardunio.png)![image](Doc/HEKR_PIN.png) <br/>
  
- ###  Client Application Software for Mobile & PC <br/>
+ ###  Mqtt Client Software for Mobile & PC <br/>
  
  * Android APP
 > 1. [Serial USB Terminal APP](https://play.google.com/store/apps/details?id=de.kai_morich.serial_usb_terminal&hl=en "https://play.google.com/store/apps/details?id=de.kai_morich.serial_usb_terminal&hl=en") <br/>
