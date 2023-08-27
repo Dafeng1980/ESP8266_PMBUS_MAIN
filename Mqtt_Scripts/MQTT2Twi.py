@@ -143,6 +143,10 @@ class MQTT2Twi:
         stra = self.sm_write_word.format(self.addr, com, msb, lsb)
         self.pub_pmbus_set(stra)
     
+    def smwrite_block(self, com, listcom):
+        stra = self.smwrite_block2hexstr(com, listcom)
+        self.pub_pmbus_set(stra)
+
     def smread_byte(self, com):
         stra = self.sm_read_byte.format(self.addr, com)
         self.pub_pmbus_set(stra)
@@ -180,6 +184,18 @@ class MQTT2Twi:
         list_str += ']'
         return list_str
     
+    def smwrite_block2hexstr(self, com, listcom):
+        count = len(listcom)
+        list_str = '['
+        list_str += '05'
+        list_str += ' {:02X}'.format(self.addr)
+        list_str += ' {:02X}'.format(com)
+        list_str += ' {:02X}'.format(count)
+        for x in listcom:
+            list_str += ' {:02X}'.format(x)
+        list_str += ']'
+        return list_str
+
     def smwriteread_blocks(self, com, listcom, rcount, crc16 = False):
         stra = self.smwriteread_block2hexstr(com, listcom, rcount, crc16)
         self.pub_pmbus_set(stra)

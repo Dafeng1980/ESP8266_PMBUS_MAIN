@@ -114,9 +114,9 @@ void setWifiMqtt(){
   delay(10);
   uint8_t host = EEPROM.read(0x00);
   if(host == 0){
-    strncpy(eep.ssid, ssid, 32);
+    strncpy(eep.ssid, ssid, 16);
     strncpy(eep.password, password, 16);
-    strncpy(eep.mqtt_broker, mqtt_server, 64);
+    strncpy(eep.mqtt_broker, mqtt_server, 31);
   }
   else if (host >= 1) {
       EEPROM.get(0, eep);
@@ -553,13 +553,13 @@ void set_eeprom(){
       eep.host = read_int();     
       Log.noticeln(F("New host set: %d"), eep.host);
       Log.noticeln(F("Input WiFi ssid:"));
-      strncpy(eep.ssid, read_string(), 32);
+      strncpy(eep.ssid, read_string(), 16);
       Log.noticeln(F("New WiFi ssid: %s"), eep.ssid);
       Log.noticeln(F("Input WiFi password:"));
       strncpy(eep.password, read_string(), 16);
       Log.noticeln(F("New WiFi password: %s"), eep.password);
       Log.noticeln(F("Input MQTT broker:"));
-      strncpy(eep.mqtt_broker, read_string(), 64);
+      strncpy(eep.mqtt_broker, read_string(), 31);
       Log.noticeln(F("New MQTT broker: %s"), eep.mqtt_broker);
       EEPROM.put(0,eep);
       Log.noticeln(F("Do you want to save the data to EEPROM. Yes(Y), No(N):"));

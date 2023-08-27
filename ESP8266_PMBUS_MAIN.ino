@@ -74,9 +74,9 @@ static struct PowerPmbus
 struct eeprom
 {
   uint8_t host;
-  char ssid[32];
+  char ssid[16];
   char password[16];
-  char mqtt_broker[64];
+  char mqtt_broker[31];
 }eep;
 
 uint8_t smbus_data[256];
