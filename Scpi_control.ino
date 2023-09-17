@@ -27,35 +27,13 @@ void modifycurr(float val){
   sprintf(currval, "curr:stat:l1 %2.1f", val );
   Serial.println("*rst");
   delay(20);
-  if(currlh) Serial.println("mode 1");
-  else Serial.println("mode 0");
+  Serial.println("mode 1");
   delay(20);
   Serial.println(currval);
   delay(20);
   Serial.println("load 1");
   delay(10);
   pub("scpi/info", currval);
-}
-
-void setdynload(){
-  Serial.println("*rst");
-  delay(20);
-  Serial.println("mode 3");
-  delay(20);
-  Serial.println("curr:dyn:l1 15");
-  delay(20);
-  Serial.println("curr:dyn:l2 79");
-  delay(20);
-  Serial.println("curr:dyn:rise 1");
-  delay(20);
-  Serial.println("curr:dyn:fall 1");
-  delay(20);
-  Serial.println("curr:dyn:t1 1ms");
-  delay(20);
-  Serial.println("curr:dyn:t2 1ms");
-  delay(20);
-  Serial.println("load 1");
-  delay(20);  
 }
 
 int cont_str(char *str) {

@@ -1,4 +1,5 @@
 void checkSensors(){
+  if(expandengery) pmbus_Ein_Eout_read();
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= pmInterval && !subsmbusflag && !subscpiflag){
         previousMillis = currentMillis;
@@ -44,10 +45,6 @@ bool readpmbusdata(){
        pd.s_vo = pmbus_readStatusVout(ps_i2c_address);    //0x7A Status_Vout
        pd.s_io = pmbus_readStatusIout(ps_i2c_address);    //0x7B 
        pd.s_in = pmbus_readStatusInput(ps_i2c_address);   //0x7C
-     }
-     if(expandengery){
-     pd.inputE = pmbus_readEin(ps_i2c_address);            //Ein 0x86
-     pd.outputE = pmbus_readEout(ps_i2c_address);         //Eout 0x87
      }
      if(expandsensor){
      pd.temp2 = pmbus_readItemp(ps_i2c_address);        //temp sensor 0x8E  

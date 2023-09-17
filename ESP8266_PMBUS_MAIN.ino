@@ -106,7 +106,7 @@ static bool serialflag = false;
 static bool expandengery = false;
 static bool expandsensor = false;
 static bool setscpicurr = false;
-bool currlh = true;
+static bool energyflag = true;
 
 const char* ssid = "FAIOT";           // Enter your WiFi name 
 const char* password = "20212021";    // Enter WiFi password
@@ -131,6 +131,7 @@ char msg[MSG_BUFFER_SIZE];
 char scpicmd[MSG_BUFFER_SIZE];
 char ui_buffer[UI_BUFFER_SIZE];
 unsigned long previousMillis = 0;
+unsigned long previousMillis_energy = 0;
 long count = 0;
 uint16_t value = 0;
 float setcurr;

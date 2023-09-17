@@ -8,7 +8,13 @@ import paho.mqtt.client as mqtt
 import xlwings as xw
 import sys
 import json
+import csv
 client = mqtt.Client()
+# path_now = "pmbus_log_" + time.strftime("%m_%d_%H", time.localtime()) + ".txt"
+# file = open (path_now, "a")
+data_file = open('pmbusdata_' + time.strftime("%m_%d_%H_%M", time.localtime()) + '.csv', 'w', newline='')
+csv_writer = csv.writer(data_file)
+
 class MQTTtoExcel:    
     def __init__(self, mqtt_server):
         self.filepath = r'D:\My Documents\pmbus\pmbus_excel.xlsx'
@@ -19,11 +25,13 @@ class MQTTtoExcel:
         self.mqtt_server = mqtt_server
         #self.filename = " "
         self.records = 600 
-        self.Base_topic = "npicsu/"
+        self.Base_topic = "npi/"
         self.username = 'dfiot'
         self.password = '123abc'
         self.ws = self.wb.sheets['sheet1']
-        #self.ws1 = self.wb.sheets['sheet2']      
+        #self.ws1 = self.wb.sheets['sheet2'] 
+        self.json_c = 0
+        self.csv_c = 0    
         self.count = 0
         self.eep_c = 14
         
@@ -126,7 +134,19 @@ class MQTTtoExcel:
         self.ws.range('I4').value = ("%02x" % int(data["statusIo"]))
         print("statusInput: 0x%02x" % data["statusIn"])
         self.ws.range('I5').value = ("%02x" % int(data["statusIn"]))
- 
+        self.json_c += 1
+        if(self.json_c >= 5):
+            # file.write(time.strftime("%H:%M:%S-> ", time.localtime()) + msg.payload.decode() + " \n")
+            self.ws.range('A32').value= data
+            # print(data)
+            data.update({'timestamp' : time.strftime("%H:%M:%S", time.localtime())})
+            if self.csv_c == 0:
+                header = data.keys()
+                csv_writer.writerow(header)
+                self.csv_c +=1
+            csv_writer.writerow(data.values())       
+            self.json_c = 0
+
     def eeprom_com(self, offset, addr = 0x50):
         self.pub("pmbus/set", "[08 {:02x} {:02x} {:02x} 10 01]".format(addr, (offset >> 8) & 0xFF, (offset & 0xff)))
 
@@ -136,10 +156,8 @@ class MQTTtoExcel:
         client.on_message = self.on_message
         client.username_pw_set(self.username, self.password)
         client.message_callback_add(self.Base_topic + "pmbus/jsoninfo", self.topic_json_callback)
-        #client.username_pw_set('dfiot', '123abc')
         #client.connect("192.168.200.2", 1883, 60)
         client.connect(self.mqtt_server, 1883, 60)
-        #client.publish(self.Base_topic + "pmbus/set", "[AA 04]", qos=0, retain=False)
         time.sleep(0.1)    
         
     def mqttloop(self):
@@ -150,11 +168,13 @@ def main():
     ptoe = MQTTtoExcel("192.168.200.2")
     if len(sys.argv) == 2:
         ptoe.Base_topic = (sys.argv[1] + '/')
-    else: ptoe.Base_topic = 'npicsu/'
+    else: ptoe.Base_topic = 'npi/'
     # ptoe.set_records(16)
     ptoe.start()
     ptoe.set_polltime(1000)
     ptoe.pub("pmbus/set", "[AA 04]") #Enable sensor read&pub
+    time.sleep(0.1)
+    ptoe.pub("pmbus/set", "[AA 08]") #Enable energy read&pub
     time.sleep(0.1)
     while True:
         if(ptoe.ws.range('F10').value == "Enable"):

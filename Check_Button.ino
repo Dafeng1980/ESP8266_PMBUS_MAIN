@@ -80,18 +80,13 @@ void checkButton() {
          else if(smbus_data[1] == 4) expandsensor = true;
          else if(smbus_data[1] == 5) i2cdetectsstatus();            //[AA 05] Scan Pmbus device.
          else if(smbus_data[1] == 6) standbystatus();               //[AA 06] Standby monitoring Enable/Disble.
-         else if(smbus_data[1] == 7) expandengery = true;            //
-         else if(smbus_data[1] == 8) expandengery = false;         
+         else if(smbus_data[1] == 7) energystatus();            //
+         else if(smbus_data[1] == 8) expandengery = true;         
          else if(smbus_data[1] == 9) pecstatus();                   //[AA 09] PEC Enable/Disable.
          else if(smbus_data[1] == 0x0A) set_custom(smbus_data[2]);         //set WiFI MQTT broker from EEPROM
          else if(smbus_data[1] == 0xAA) key = 4;                     //set default
          else if(smbus_data[1] == 0xBB) esprestar();                 //reset device
        }
-     else if(smbus_data[0] == 0xCC){                               //send SCPI script command  
-        if(smbus_data[1] == 0) currlh = true;
-        else if(smbus_data[1] == 1) currlh = false;
-        else if(smbus_data[1] == 2)setdynload(); 
-     }
        subsmbusflag = false;
        buttonflag = true;
   }
@@ -469,6 +464,21 @@ void pecstatus(){
     }
     delay(100);
 }
+
+
+void energystatus(){
+    expandengery = !expandengery;
+    if(expandengery) {
+      energyflag = true;
+      Log.noticeln(F("Energy Enable"));
+      pub("pmbus/energy", "1");
+    }
+    else {
+      Log.noticeln(F("Energy Disable"));
+      pub("pmbus/energy", "0");
+    }
+    delay(100);
+ }
 
 void i2cdetectsstatus(){
   scani2c = !scani2c;

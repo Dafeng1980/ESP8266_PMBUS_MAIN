@@ -219,34 +219,34 @@ uint8_t pmbus_readStatusFan(uint8_t address)
   return status_byte;
 }
 
-float pmbus_readEin(uint8_t address)
+static  unsigned long lastEnergy_in,lastSample_in,currentEnergy_in,currentSample_in;
+static  unsigned long lastEnergy_out,lastSample_out,currentEnergy_out,currentSample_out;
+void pmbus_Ein_Eout_read()
 {
   uint8_t data[6];
-  unsigned long lastEnergy,lastSample,currentEnergy,currentSample;
-  float ret;
-    smbus_readBlock(address, 0x86, data, 6);            //READ_EIN = 0x86;
-    lastEnergy = data[0] + data[1]*0x100 + data[2]*0x7FFF;
-    lastSample = data[3] + data[4]*0x100 + data[5]*0x10000;
-    delay(1000);
-    smbus_readBlock(address, 0x86, data, 6);
-    currentEnergy = data[0] + data[1]*0x100 + data[2]*0x7FFF;
-    currentSample = data[3] + data[4]*0x100 + data[5]*0x10000;
-    ret = (float)(currentEnergy - lastEnergy)/(float)(currentSample - lastSample);    
-  return ret;
-}
-
-float pmbus_readEout(uint8_t address)
-{
-  uint8_t data[6];
-  unsigned long lastEnergy,lastSample,currentEnergy,currentSample;
-  float ret;
-    smbus_readBlock(address, 0x87, data, 6);               //READ_EOUT = 0x87;
-    lastEnergy = data[0] + data[1]*0x100 + data[2]*0x7FFF;
-    lastSample = data[3] + data[4]*0x100 + data[5]*0x10000;
-    delay(1000);
-    smbus_readBlock(address, 0x87, data, 6);
-    currentEnergy = data[0] + data[1]*0x100 + data[2]*0x7FFF;
-    currentSample = data[3] + data[4]*0x100 + data[5]*0x10000;
-    ret = (float)(currentEnergy - lastEnergy)/(float)(currentSample - lastSample);    
-  return ret;
+  unsigned long currentread = millis();
+    if(energyflag)
+      {
+        smbus_readBlock(ps_i2c_address, 0x86, data, 6);            //READ_EIN = 0x86;
+        lastEnergy_in = data[0] + data[1]*0x100 + data[2]*0x7FFF;
+        lastSample_in = data[3] + data[4]*0x100 + data[5]*0x10000;
+        smbus_readBlock(ps_i2c_address, 0x87, data, 6);            //READ_EOUT = 0x87;
+        lastEnergy_out = data[0] + data[1]*0x100 + data[2]*0x7FFF;
+        lastSample_out = data[3] + data[4]*0x100 + data[5]*0x10000;
+        currentread = millis();
+        previousMillis_energy = currentread;
+        energyflag = false;
+      }
+    if (currentread - previousMillis_energy >= 1000 && !energyflag)
+    {
+        smbus_readBlock(ps_i2c_address, 0x86, data, 6);
+        currentEnergy_in = data[0] + data[1]*0x100 + data[2]*0x7FFF;
+        currentSample_in = data[3] + data[4]*0x100 + data[5]*0x10000;
+        smbus_readBlock(ps_i2c_address, 0x87, data, 6);
+        currentEnergy_out = data[0] + data[1]*0x100 + data[2]*0x7FFF;
+        currentSample_out = data[3] + data[4]*0x100 + data[5]*0x10000;
+        pd.inputE = (float)(currentEnergy_in - lastEnergy_in)/(float)(currentSample_in - lastSample_in);
+        pd.outputE = (float)(currentEnergy_out - lastEnergy_out)/(float)(currentSample_out - lastSample_out);
+        energyflag =true;
+    }    
 }

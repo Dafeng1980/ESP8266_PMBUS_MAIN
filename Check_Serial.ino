@@ -186,9 +186,9 @@ void smbus_command_sent(uint8_t com){
           snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X]", sm.commands, sm.databyte);
           pub("pmbus/info/read", msg);
         }
-       else  pub("pmbus/info/write", "Read Word Fail.");      
+       else  pub("pmbus/info/write", "Read Byte Fail.");      
         Log.noticeln("%s", msg);               
-        delay(10);       
+        // delay(10);       
       break;
            
       case 1:
@@ -205,7 +205,7 @@ void smbus_command_sent(uint8_t com){
         else pub("pmbus/info/write", "Read Word Fail.");         
         pub("pmbus/info/read", msg);
         Log.noticeln("%s", msg);     
-        delay(10);
+        // delay(10);
       break;
         
       case 2:
@@ -234,14 +234,8 @@ void smbus_command_sent(uint8_t com){
           snprintf (msg, MSG_BUFFER_SIZE, "%02X: [%02X%s]", sm.commands, actual_size, d);
           pub("pmbus/info/read", msg);
         }
-        else pub("pmbus/info/write", "Read Blocks Fail.");
-              
-        if(serialflag) {
-                Log.noticeln("%s", msg); 
-                // Log.errorln(F("Read Blocks Size:%x"), actual_size);
-                // printFru(0, actual_size-1, sm.datablock);
-        }                   
-        delay(10);
+        else pub("pmbus/info/write", "Read Blocks Fail.");     
+        Log.noticeln("%s", msg); 
       break;
             
       case 3:
@@ -254,7 +248,7 @@ void smbus_command_sent(uint8_t com){
         else snprintf (msg, MSG_BUFFER_SIZE, "Write Byte Fail.");
         pub("pmbus/info/write", msg);
         Log.noticeln("%s", msg);      
-        delay(10); 
+        delay(5); 
         break;
                 
       case 4:
@@ -267,7 +261,7 @@ void smbus_command_sent(uint8_t com){
         else snprintf (msg, MSG_BUFFER_SIZE, "Write Word Fail.");
         pub("pmbus/info/write", msg);
         Log.noticeln("%s", msg);      
-        delay(10);
+        delay(5);
         break;
                 
       case 5:
@@ -288,7 +282,7 @@ void smbus_command_sent(uint8_t com){
           else snprintf (msg, MSG_BUFFER_SIZE, "Write Blocks Fail.");
           pub("pmbus/info/write", msg);
           Log.noticeln("%s", msg);      
-          delay(10);     
+          delay(5);     
         break;
       
        case 6:
@@ -335,7 +329,7 @@ void smbus_command_sent(uint8_t com){
                 printFru(0, actual_size-1, sm.datablock_b);
         }
         else Log.noticeln("%s", msg);      
-        delay(10);     
+        delay(5);     
         break;
 
        case 7:
@@ -347,7 +341,7 @@ void smbus_command_sent(uint8_t com){
         if(smbuscomun) snprintf (msg, MSG_BUFFER_SIZE, "SentByte Done.");
         else snprintf (msg, MSG_BUFFER_SIZE, "SentByte Fail.");
         pub("pmbus/info/write", msg);      
-        delay(10);       
+        delay(5);       
           break;
          
       case 8:
@@ -425,7 +419,7 @@ void smbus_command_sent(uint8_t com){
           pub("pmbus/info/read", msg);
           Log.noticeln("%s", msg);
         }
-        delay(5);
+        delay(1);
         break;
         
       case 'h':
